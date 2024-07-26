@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "dify-rag"
+version = "0.1.0"
+description = ""
+authors = ["libing <libing@healink.cn>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[[tool.poetry.source]]
+name = "mirrors"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+priority = "default"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
