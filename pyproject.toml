@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.8"
 pydantic = "^2.8.2"
+beautifulsoup4 = "^4.12.3"
 
 [[tool.poetry.source]]
 name = "mirrors"
