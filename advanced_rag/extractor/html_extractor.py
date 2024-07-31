@@ -1,8 +1,8 @@
 from bs4 import BeautifulSoup
 
-from rag.extractor import constants, utils
-from rag.extractor.extractor_base import BaseExtractor
-from rag.models.document import Document
+from advanced_rag.extractor import constants, utils
+from advanced_rag.extractor.extractor_base import BaseExtractor
+from advanced_rag.models.document import Document
 
 
 class HtmlExtractor(BaseExtractor):
