@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from rag.extractor import constants
+from rag.extractor import constants, utils
 from rag.extractor.extractor_base import BaseExtractor
 from rag.models.document import Document
 
@@ -47,7 +47,9 @@ class HtmlExtractor(BaseExtractor):
         return docs
 
     def extract(self) -> list[Document]:
-        with open(self._file_path, "rb") as f:
+        with open(
+            self._file_path, "r", encoding=utils.get_encoding(self._file_path)
+        ) as f:
             soup = BeautifulSoup(f, "html.parser")
             soup = self._pre_process(soup)
 
