@@ -11,6 +11,7 @@ beautifulsoup4 = "^4.12.3"
 pydantic = "^2.8.2"
 pydantic-core = "^2.20.1"
 annotated-types = "^0.7.0"
+chardet = "^5.2.0"
 
 [[tool.poetry.source]]
 name = "mirrors"
