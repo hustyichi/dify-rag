@@ -5,6 +5,8 @@ from dify_rag.extractor import utils
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.models.document import Document
 
+NO_TITLE = "[no-title]"
+
 
 class HtmlExtractor(BaseExtractor):
     def __init__(
@@ -19,9 +21,13 @@ class HtmlExtractor(BaseExtractor):
         ) as f:
             text = f.read()
             html_doc = readability.Document(text)
-            title = html_doc.title()
             content = html_text.extract_text(html_doc.summary(html_partial=True))
-            txt = f"{title}\n{content}"
+
+            title = html_doc.title()
+            if title != NO_TITLE:
+                txt = f"{title}\n{content}"
+            else:
+                txt = content
             sections = txt.split("\n")
 
             docs = []
