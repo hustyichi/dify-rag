@@ -7,11 +7,12 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-beautifulsoup4 = "^4.12.3"
 pydantic = "^2.8.2"
 pydantic-core = "^2.20.1"
 annotated-types = "^0.7.0"
 chardet = "^5.2.0"
+html-text = "^0.6.2"
+readability-lxml = "^0.8.1"
 
 [[tool.poetry.source]]
 name = "mirrors"
