@@ -15,7 +15,7 @@ chardet = "^5.2.0"
 
 [[tool.poetry.source]]
 name = "mirrors"
-url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+url = "https://mirrors.aliyun.com/pypi/simple"
 priority = "primary"
 
 
