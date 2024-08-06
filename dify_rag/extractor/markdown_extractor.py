@@ -57,16 +57,12 @@ class MarkdownExtractor(BaseExtractor):
         for line in lines:
             if line.startswith("```"):
                 code_block_flag = not code_block_flag
-                # enter code block, push previous text to tups
+                # enter code block, add split flag
                 if code_block_flag:
-                    if current_text:
-                        markdown_tups.append((current_header, current_text))
-                    current_text = line + "\n"
-                # exit code block, push current text to tups
+                    current_text += "\n" + line + "\n"
+                # exit code block, add split flag
                 else:
-                    current_text += line + "\n"
-                    markdown_tups.append((current_header, current_text))
-                    current_text = ""
+                    current_text += line + "\n\n"
 
                 continue
 
