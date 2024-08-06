@@ -3,6 +3,7 @@
 # Description: None
 
 from collections import Counter
+from typing import Optional
 
 import pymupdf
 
@@ -11,12 +12,10 @@ from dify_rag.extractor.utils import is_gibberish
 from dify_rag.models.document import Document
 
 
-class PDFExtractor(BaseExtractor):
-    def __init__(
-        self,
-        file_path: str,
-    ) -> None:
+class PdfExtractor(BaseExtractor):
+    def __init__(self, file_path: str, file_cache_key: Optional[str] = None) -> None:
         self._file_path = file_path
+        self._file_cache_key = file_cache_key
 
     @staticmethod
     def remove_invalid_char(text_blocks):
@@ -75,8 +74,3 @@ class PDFExtractor(BaseExtractor):
         else:
             documents.append(Document(page_content=content))
         return documents
-
-
-if __name__ == "__main__":
-    extractor = PDFExtractor("./xxx.pdf")
-    result = extractor.extract()
