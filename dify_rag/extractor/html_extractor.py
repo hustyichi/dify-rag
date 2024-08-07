@@ -14,9 +14,11 @@ class HtmlExtractor(BaseExtractor):
         self,
         file_path: str,
         remove_hyperlinks: bool = True,
+        fix_check: bool = True,
     ) -> None:
         self._file_path = file_path
         self._remove_hyperlinks = remove_hyperlinks
+        self._fix_check = fix_check
 
     @staticmethod
     def convert_table_to_markdown(table) -> str:
@@ -45,6 +47,16 @@ class HtmlExtractor(BaseExtractor):
                 text = tag.get_text()
                 cleaned_text = text.replace("\n", " ").replace("\r", "")
                 tag.replace_with(cleaned_text)
+
+        # clean unchecked checkboxes and radio buttons
+        if self._fix_check:
+            match_inputs = soup.find_all("input", {"type": ["checkbox", "radio"]})
+            for input_tag in match_inputs:
+                if not input_tag.has_attr("checked"):
+                    next_span = input_tag.find_next_sibling("span")
+                    if next_span:
+                        next_span.extract()
+                    input_tag.extract()
 
         # split tables
         tables_md = []
