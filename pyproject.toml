@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dify-rag"
-version = "0.0.3"
+version = "0.0.4"
 description = "dify's rag patch module"
 authors = ["libing <libing@healink.cn>"]
 readme = "README.md"
