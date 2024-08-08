@@ -12,11 +12,15 @@ class MarkdownExtractor(BaseExtractor):
         file_path: str,
         remove_hyperlinks: bool = False,
         remove_images: bool = False,
+        encoding: Optional[str] = None,
+        autodetect_encoding: bool = True,
     ):
         """Initialize with file path."""
         self._file_path = file_path
         self._remove_hyperlinks = remove_hyperlinks
         self._remove_images = remove_images
+        self._encoding = encoding
+        self._autodetect_encoding = autodetect_encoding
 
     def contain_content(self, content: str):
         """Check whether content is empty"""
@@ -128,7 +132,11 @@ class MarkdownExtractor(BaseExtractor):
     def parse_tups(
         self, filepath: str
     ) -> tuple[list[tuple[Optional[str], str]], list[str]]:
-        with open(filepath, encoding=utils.get_encoding(filepath)) as f:
+        file_encoding = self._encoding
+        if not file_encoding:
+            file_encoding = utils.get_encoding(filepath)
+
+        with open(filepath, encoding=file_encoding) as f:
             content = f.read()
 
             # extract tables from content
