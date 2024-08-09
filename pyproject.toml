@@ -2,8 +2,9 @@
 name = "dify-rag"
 version = "0.0.5"
 description = "dify's rag patch module"
-authors = ["libing <libing@healink.cn>"]
+authors = ["yichi <hustyichi@163.com>"]
 readme = "README.md"
+repository = "https://github.com/hustyichi/dify-rag"
 
 [tool.poetry.dependencies]
 python = "^3.8"
