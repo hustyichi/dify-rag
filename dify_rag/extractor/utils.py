@@ -1,3 +1,5 @@
+import re
+
 common_characters = set(
     "＞、abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?;:'\"-，。！？；：”“‘’\n\t+-*\\/·[]{}【】()（）@#$%^&<>《》`~］′＜～‐='"
 )
@@ -127,15 +129,108 @@ def get_encoding(file) -> str:
 
 def is_gibberish(text):
     text = sorted(text)
-    text_length = len(text)
     check_char_list = list(text)
     check_result_list = list()
-    if text_length > 2:
-        # 采取抽检的方式
-        check_char_list = [text[0], text[-1], text[text_length // 2]]
     for char in check_char_list:
         if char in common_characters or (start_zh_ord <= ord(char) <= end_zh_ord):
             check_result_list.append(True)
         else:
             check_result_list.append(False)
-    return all(check_result_list)
+            if check_result_list.count(False) / len(check_result_list) > 0.3:
+                return False
+    return check_result_list.count(False) / len(check_result_list) < 0.3
+
+
+def fix_error_pdf_content(text: str):
+    text = text.replace("\U001001b0", ".")
+    # 匹配，和袁的映射
+    text = text.replace("袁", "，")
+    # 匹配。和 遥
+    text = text.replace("遥", "。")
+    # 匹配：和 院
+    ## 如果院前面是医的话，那么就不用转换
+    text = re.sub(r"(?<!医)院", "：", text)
+    # 匹配（和 渊
+    text = text.replace("渊", "（")
+    # 匹配）和 冤
+    text = text.replace("冤", "）")
+    # 匹配、和尧
+    text = text.replace("尧", "、")
+    # 匹配【和 揖
+    text = text.replace("揖", "【")
+    # 匹配】和 铱
+    text = text.replace("铱", "】")
+    # 匹配℃ 和益 利用正则匹配了益字前面是否为数字，如果是数字那么才匹配
+    # 注意识别出来的益和前面的数字之间有一个空格的
+    text = re.sub(r"(?<=\d\s)益", "℃", text)
+    # 匹配~和 耀
+    text = text.replace("耀", "~")
+    # 匹配；和 曰
+    text = text.replace("曰", "；")
+
+    text = re.sub(r"(\d)依", r"\1±", text)
+
+    text = text.replace("滋g", "μg")
+
+    text = re.sub(r"伊(\d+)", r"x\1", text)
+
+    text = text.replace("覬", "∅")
+
+    # 修复 《 和 》 解析异常
+    text = re.sub(r"叶(.*?)曳", r"《\1》", text, flags=re.DOTALL)
+
+    # 修复 ≤
+    text = re.sub(r"逸(\d+)", r"≥", text)
+    text = re.sub(r"臆(\d+)", r"≤", text)
+
+    # 修复 -
+    text = text.replace("鄄", "-")
+
+    # 修复 ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩
+    text = re.sub(
+        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞(.*?)愚(.*?)舆(.*?)余(.*?)俞(.*?)逾",
+        r"①\1②\2③\3④\4⑤\5⑥\6⑦\7⑧\8⑨\9⑩",
+        text,
+        flags=re.DOTALL,
+    )
+    text = re.sub(
+        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞(.*?)愚(.*?)舆(.*?)余(.*?)俞",
+        r"①\1②\2③\3④\4⑤\5⑥\6⑦\7⑧\8⑨",
+        text,
+        flags=re.DOTALL,
+    )
+    text = re.sub(
+        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞(.*?)愚(.*?)舆(.*?)余",
+        r"①\1②\2③\3④\4⑤\5⑥\6⑦\7⑧",
+        text,
+        flags=re.DOTALL,
+    )
+    text = re.sub(
+        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞(.*?)愚(.*?)舆",
+        r"①\1②\2③\3④\4⑤\5⑥\6⑦",
+        text,
+        flags=re.DOTALL,
+    )
+    text = re.sub(
+        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞(.*?)愚",
+        r"①\1②\2③\3④\4⑤\5⑥",
+        text,
+        flags=re.DOTALL,
+    )
+    text = re.sub(
+        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞", r"①\1②\2③\3④\4⑤", text, flags=re.DOTALL
+    )
+    text = re.sub(r"淤(.*?)于(.*?)盂(.*?)榆", r"①\1②\2③\3④", text, flags=re.DOTALL)
+    text = re.sub(r"淤(.*?)于(.*?)盂", r"①\1②\2③", text, flags=re.DOTALL)
+    text = re.sub(r"淤(.*?)于", r"①\1②", text, flags=re.DOTALL)
+
+    # 修复 [ 和 ] 解析异常
+    text = re.sub(r"咱(.{0,30}?)暂", r"[\1]", text, flags=re.DOTALL)
+
+    # 修复罗马数字字符
+    text = re.sub(r"(?<![\u4e00-\u9fa5])玉|玉(?![\u4e00-\u9fa5])|玉(?=期)", "Ⅰ", text)
+    text = re.sub(r"(?<![\u4e00-\u9fa5])域|域(?![\u4e00-\u9fa5])|域(?=期)", "Ⅱ", text)
+    text = re.sub(r"(?<![\u4e00-\u9fa5])芋|芋(?![\u4e00-\u9fa5])|芋(?=期)", "Ⅲ", text)
+    text = re.sub(r"(?<![\u4e00-\u9fa5])郁|郁(?![\u4e00-\u9fa5])|郁(?=期)", "Ⅳ", text)
+
+    return text.replace("\n", "")

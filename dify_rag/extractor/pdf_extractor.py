@@ -8,7 +8,7 @@ from typing import Optional
 import pymupdf
 
 from dify_rag.extractor.extractor_base import BaseExtractor
-from dify_rag.extractor.utils import is_gibberish
+from dify_rag.extractor.utils import fix_error_pdf_content, is_gibberish
 from dify_rag.models.document import Document
 
 
@@ -24,7 +24,7 @@ class PdfExtractor(BaseExtractor):
             block_text = block[4]
             if is_gibberish(block_text):
                 block_content += block_text
-        return block_content.replace("\n", "")
+        return fix_error_pdf_content(block_content)
 
     @staticmethod
     def check_doc_header_or_footer(doc):
