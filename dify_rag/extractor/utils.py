@@ -3,6 +3,9 @@ import re
 common_characters = set(
     "＞、abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?;:'\"-，。！？；：”“‘’\n\t+-*\\/·[]{}【】()（）@#$%^&<>《》`~］′＜～‐='"
 )
+# 添加希腊字母（小写和大写）
+greek_letters = "αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
+common_characters.update(greek_letters)
 start_zh_ord, end_zh_ord = ord("一"), ord("龥")
 
 all_codecs = [
@@ -142,6 +145,9 @@ def is_gibberish(text):
 
 
 def fix_error_pdf_content(text: str):
+    # 替换空白字符
+    text = text.replace("\xa0", "")
+    text = text.replace("\u3000", " ")
     text = text.replace("\U001001b0", ".")
     # 匹配，和袁的映射
     text = text.replace("袁", "，")
@@ -185,6 +191,9 @@ def fix_error_pdf_content(text: str):
 
     # 修复 -
     text = text.replace("鄄", "-")
+    
+    # 修复 ●
+    text = text.replace("\uf06c", "●")
 
     # 修复 ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩
     text = re.sub(
