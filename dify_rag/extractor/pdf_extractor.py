@@ -71,6 +71,8 @@ class PdfExtractor(BaseExtractor):
                 prefix, suffix = self.split_completion(content, current_split)
                 documents.append(Document(page_content=prxfix_split + prefix))
                 prxfix_split, content = current_split, suffix
+                if _toc == toc[-1]:
+                    documents.append(Document(page_content=content))
         else:
             documents.append(Document(page_content=content))
         return documents
