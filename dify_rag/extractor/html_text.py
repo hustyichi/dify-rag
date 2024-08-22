@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
+import copy
+import enum
 import re
 
 import lxml
 import lxml.etree
 from lxml.html.clean import Cleaner
+
+
+class SupType(enum.Enum):
+    UNKNOWN = "unknown"
+    NUMERAL = "numeral"
+    QUOTE = "quote"
+
 
 NEWLINE_TAGS = frozenset(
     [
@@ -46,6 +55,16 @@ DOUBLE_NEWLINE_TAGS = frozenset(
         "ul",
     ]
 )
+
+SPLIT_TAGS = [
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+]
+
+TITLE_KEY = "title"
+NO_TITLE = "[no-title]"
 
 cleaner = Cleaner(
     scripts=True,
@@ -108,6 +127,8 @@ def etree_to_text(
     guess_layout=True,
     newline_tags=NEWLINE_TAGS,
     double_newline_tags=DOUBLE_NEWLINE_TAGS,
+    split_tags=SPLIT_TAGS,
+    title=None,
 ):
     """
     Convert a html tree to text. Tree should be cleaned with
@@ -118,26 +139,51 @@ def etree_to_text(
     approach and options.
     """
     chunks = []
+    split_chunks = []
+    split_texts = []
+    split_texts_hierarch_titles = []
+    current_hierarchy_titles = []
+    if title and title != NO_TITLE:
+        current_hierarchy_titles.append((TITLE_KEY, title))
 
     _NEWLINE = object()
     _DOUBLE_NEWLINE = object()
     prev = _DOUBLE_NEWLINE  # _NEWLINE, _DOUBLE_NEWLINE or content of the previous chunk (str)
 
-    def should_add_space(text):
+    def check_sup_type(text, tag=None) -> SupType:
+        if not (tag and tag == "sup"):
+            return SupType.UNKNOWN
+
+        QUOTE_PATTERN = (
+            r"^\[\s*(\d+|(\d+\s*～\s*\d+))(?:,\s*(\d+|(\d+\s*～\s*\d+)))*\s*\]$"
+        )
+
+        if text.isdigit():
+            return SupType.NUMERAL
+        elif re.match(QUOTE_PATTERN, text):
+            return SupType.QUOTE
+
+        return SupType.UNKNOWN
+
+    def should_add_space(text, tag=None):
         """Return True if extra whitespace should be added before text"""
         if prev in {_NEWLINE, _DOUBLE_NEWLINE}:
             return False
         if not guess_punct_space:
             return True
         if not _has_trailing_whitespace(prev):
-            if _has_punct_after(text) or _has_open_bracket_before(prev):
+            if (
+                _has_punct_after(text)
+                or _has_open_bracket_before(prev)
+                or check_sup_type(text, tag) == SupType.NUMERAL
+            ):
                 return False
         return True
 
-    def get_space_between(text):
+    def get_space_between(text, tag=None):
         if not text:
             return " "
-        return " " if should_add_space(text) else ""
+        return " " if should_add_space(text, tag) else ""
 
     def add_newlines(tag):
         nonlocal prev
@@ -147,32 +193,99 @@ def etree_to_text(
             return
         if tag in double_newline_tags:
             chunks.append("\n" if prev is _NEWLINE else "\n\n")
+            split_chunks.append("\n" if prev is _NEWLINE else "\n\n")
             prev = _DOUBLE_NEWLINE
         elif tag in newline_tags:
             if prev is not _NEWLINE:
                 chunks.append("\n")
+                split_chunks.append("\n")
             prev = _NEWLINE
 
-    def add_text(text_content):
+    def add_text(text_content, tag=None):
         nonlocal prev
         text = _normalize_whitespace(text_content) if text_content else ""
         if not text:
             return
-        space = get_space_between(text)
+
+        space = get_space_between(text, tag)
+
+        sup_type = check_sup_type(text, tag)
+        if sup_type == SupType.QUOTE:
+            return
+        elif sup_type == SupType.NUMERAL:
+            text = f"^{text}"
+
         chunks.extend([space, text])
+        # ignore header title
+        if not (tag and tag in split_tags):
+            split_chunks.extend([space, text])
+
         prev = text_content
+
+    def compare_html_tags(tag1, tag2):
+        tag_hierarchy = {
+            TITLE_KEY: 100,
+            "h1": 6,
+            "h2": 5,
+            "h3": 4,
+            "h4": 3,
+            "h5": 2,
+            "h6": 1,
+        }
+
+        level1 = tag_hierarchy.get(tag1.lower(), 0)
+        level2 = tag_hierarchy.get(tag2.lower(), 0)
+
+        if level1 > level2:
+            return 1
+        elif level1 < level2:
+            return -1
+        else:
+            return 0
+
+    def update_current_hierarchy_titles(tag=None, text=None):
+        nonlocal current_hierarchy_titles
+
+        if (not tag) or (not text) or (tag not in split_tags):
+            return
+
+        while (
+            current_hierarchy_titles
+            and compare_html_tags(current_hierarchy_titles[-1][0], tag) <= 0
+        ):
+            current_hierarchy_titles.pop()
+
+        current_hierarchy_titles.append((tag.strip(), text.strip()))
+
+    def check_add_add_split_texts(tag=None, text=None):
+        nonlocal split_texts
+        nonlocal split_chunks
+
+        if tag and (tag not in split_tags):
+            return
+
+        prev_text = "".join(split_chunks).strip()
+        if prev_text:
+            split_texts.append(prev_text)
+            split_texts_hierarch_titles.append(copy.deepcopy(current_hierarchy_titles))
+
+        update_current_hierarchy_titles(tag, text)
+        split_chunks = []
 
     # Extract text from the ``tree``: fill ``chunks`` variable
     for event, el in lxml.etree.iterwalk(tree, events=("start", "end")):
         if event == "start":
+            check_add_add_split_texts(el.tag, el.text)
             add_newlines(el.tag)
-            add_text(el.text)
+            add_text(el.text, el.tag)
         elif event == "end":
             add_newlines(el.tag)
             if el is not tree:
-                add_text(el.tail)
+                add_text(el.tail, el.tag)
 
-    return "".join(chunks).strip()
+    check_add_add_split_texts()
+
+    return "".join(chunks).strip(), split_texts, split_texts_hierarch_titles
 
 
 def selector_to_text(sel, guess_punct_space=True, guess_layout=True):
@@ -222,6 +335,8 @@ def extract_text(
     guess_layout=True,
     newline_tags=NEWLINE_TAGS,
     double_newline_tags=DOUBLE_NEWLINE_TAGS,
+    split_tags=SPLIT_TAGS,
+    title=None,
 ):
     """
     Convert html to text, cleaning invisible content such as styles.
@@ -260,4 +375,6 @@ def extract_text(
         guess_layout=guess_layout,
         newline_tags=newline_tags,
         double_newline_tags=double_newline_tags,
+        split_tags=split_tags,
+        title=title,
     )
