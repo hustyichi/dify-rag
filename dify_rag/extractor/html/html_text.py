@@ -154,9 +154,8 @@ def etree_to_text(
         if not (tag and tag == "sup"):
             return SupType.UNKNOWN
 
-        QUOTE_PATTERN = (
-            r"^\[\s*(\d+|(\d+\s*[-～]\s*\d+))(?:,\s*(\d+|(\d+\s*[-～]\s*\d+)))*\s*\]$"
-        )
+        text = text.replace(" ", "")
+        QUOTE_PATTERN = r"^\[\s*(\d+|(\d+\s*[-～]\s*\d+))(?:[\s,，]\s*(\d+|(\d+\s*[-～]\s*\d+)))*\s*\]$"
 
         if text.isdigit():
             return SupType.NUMERAL

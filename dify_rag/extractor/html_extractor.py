@@ -1,8 +1,8 @@
-import readability
 from bs4 import BeautifulSoup
 
-from dify_rag.extractor import html_text, utils
+from dify_rag.extractor import utils
 from dify_rag.extractor.extractor_base import BaseExtractor
+from dify_rag.extractor.html import html_text, readability
 from dify_rag.models.document import Document
 
 
