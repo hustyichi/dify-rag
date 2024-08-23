@@ -155,7 +155,7 @@ def etree_to_text(
             return SupType.UNKNOWN
 
         QUOTE_PATTERN = (
-            r"^\[\s*(\d+|(\d+\s*～\s*\d+))(?:,\s*(\d+|(\d+\s*～\s*\d+)))*\s*\]$"
+            r"^\[\s*(\d+|(\d+\s*[-～]\s*\d+))(?:,\s*(\d+|(\d+\s*[-～]\s*\d+)))*\s*\]$"
         )
 
         if text.isdigit():
