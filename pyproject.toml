@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dify-rag"
-version = "0.0.8"
+version = "0.0.9"
 description = "dify's rag patch module"
 authors = ["yichi <hustyichi@163.com>"]
 readme = "README.md"
@@ -14,7 +14,7 @@ annotated-types = "^0.7.0"
 pymupdf = "^1.24.9"
 beautifulsoup4 = "^4.12.2"
 lxml-html-clean = "^0.2.0"
-chardet = "^5.2.0"
+chardet = "^5.1.0"
 
 [[tool.poetry.source]]
 name = "mirrors"
