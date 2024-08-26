@@ -282,13 +282,24 @@ class Document:
         # Now that we have the top candidate, look through its siblings for
         # content that might also be related.
         # Things like preambles, content split by ads that we removed, etc.
-        sibling_score_threshold = max([10, best_candidate["content_score"] * 0.2])
+
         # create a new html document with a html->body->div
         if html_partial:
             output = fragment_fromstring("<div/>")
         else:
             output = document_fromstring("<div/>")
-        best_elem = best_candidate["elem"]
+        
+        best_elem_ = best_candidate["elem"]
+        best_elem_parent = best_elem_.getparent()
+        best_elem_grandparent = best_elem_parent.getparent() if best_elem_parent is not None else None
+        if best_elem_grandparent in candidates:
+            best_elem = best_elem_grandparent
+        elif best_elem_parent in candidates:
+            best_elem = best_elem_parent
+        else:
+            best_elem = best_elem_
+        
+        sibling_score_threshold = candidates[best_elem]["content_score"] * 0.2
         parent = best_elem.getparent()
         siblings = parent.getchildren() if parent is not None else [best_elem]
         for sibling in siblings:
