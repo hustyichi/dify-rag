@@ -46,33 +46,3 @@ def retrieval2reorganize(
         final_documents_list.append(doc)
 
     return final_documents_list
-
-
-if __name__ == "__main__":
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import scoped_session, sessionmaker
-    from sqlalchemy.sql import text
-
-    engine = create_engine(
-        "postgresql+psycopg2://postgres:difyai123456@100.100.30.201:5432/dify"
-    )
-    db = scoped_session(sessionmaker(bind=engine))
-
-    query_docs_smtm = "select * from document_segments where document_id = '4c1d1ace-ac7b-4b74-a44d-d1e8bfae3b67' order by position"
-    current_docs = []
-    a = db.execute(text(query_docs_smtm))
-    for doc in a.fetchall():
-        current_docs.append(
-            Document(
-                page_content=doc.content,
-                metadata={"document_id": "4c1d1ace-ac7b-4b74-a44d-d1e8bfae3b67"},
-            )
-        )
-    query_docs = [current_docs[12], current_docs[-1]]
-
-    print(current_docs)
-    print(
-        retrieval2reorganize(
-            query_docs, {"4c1d1ace-ac7b-4b74-a44d-d1e8bfae3b67": current_docs}
-        )
-    )
