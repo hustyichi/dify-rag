@@ -30,6 +30,6 @@ class RetrievalPostStrategy:
                 )
 
     def reorganize(
-        self, query_document: List[Document], adjucnt: Optional[Any], **kwargs
+        self, query_document: List[Document], *args, **kwargs
     ) -> List[Document]:
-        return self._reorganize_strategy._reorganize(query_document, adjucnt, **kwargs)
+        return self._reorganize_strategy.reorganize(query_document, *args, **kwargs)

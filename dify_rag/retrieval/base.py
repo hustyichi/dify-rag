@@ -15,7 +15,7 @@ class RetrievalPostBase(ABC):
     def __init__(self, max_token: int):
         self.max_token = max_token
 
-    def _reorganize(
+    def reorganize(
         self, query_document: List[Document], *args, **kwargs
     ) -> List[Document]:
         raise NotImplementedError

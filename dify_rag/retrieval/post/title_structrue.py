@@ -21,7 +21,7 @@ class TitleStructurePost(RetrievalPostBase):
             prev_right -= 1
         return prev + next
 
-    def _reorganize(
+    def reorganize(
         self,
         query_document: list[Document],
         adjunct: dict[str : list[Document]],
