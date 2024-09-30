@@ -25,21 +25,34 @@ class NormalPost(RetrievalPostBase):
         position = index
         new_content = content
         while True:
-            if index + sep in segment_positions:
+            if index in segment_positions:
+                if sep > 0:
+                    new_content = self.splice_contents(
+                        new_content, document_position_map.get(index)
+                    )
+                else:
+                    new_content = self.splice_contents(
+                        document_position_map.get(index), new_content
+                    )
+                if len(new_content) > self.max_token:
+                    break
+                used_position_list.append(index)
                 index = index + sep
+                continue
             else:
                 if sep > 0:
                     left, right = index, index + max_window
                 else:
-                    left, right = index - max_window, index
+                    left, right = index - max_window + 1, index + 1
                 _orgin_index = index
                 for _index in range(left, right):
-                    if _index in segment_positions:
+                    if _index in segment_positions and _index not in used_position_list:
                         index = _index
                         break
                 if _orgin_index == index:
                     break
             # 检查是否超过规定字符长度
+            # print(f"index: {index}")
             if sep > 0:
                 prev_content = content
                 next_content = "".join(
@@ -63,7 +76,7 @@ class NormalPost(RetrievalPostBase):
         self,
         query_document: list[Document],
         adjunct: dict[str, list[Document]],
-        max_window: int = 1,
+        max_window: int = 2,
     ) -> list[Document]:
         origin_doc_position_map = {}
         origin_position_content_map = {}
