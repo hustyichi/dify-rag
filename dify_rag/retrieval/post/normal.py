@@ -12,7 +12,7 @@ from dify_rag.retrieval.base import RetrievalPostBase
 
 
 class NormalPost(RetrievalPostBase):
-    def new_content_merge(
+    def content_merge(
         self,
         index: int,
         max_window: int,
@@ -119,7 +119,7 @@ class NormalPost(RetrievalPostBase):
             used_position_list = used_position_map.get(document_id, [])
             # 构建滑动窗口进行相邻切片合并
             new_content = doc.page_content
-            new_content, used_position_list = self.new_content_merge(
+            new_content, used_position_list = self.content_merge(
                 position,
                 max_window,
                 new_content,
