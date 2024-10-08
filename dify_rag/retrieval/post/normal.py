@@ -15,61 +15,57 @@ class NormalPost(RetrievalPostBase):
     def new_content_merge(
         self,
         index: int,
-        sep: int,
         max_window: int,
         content: str,
         segment_positions: List[int],
         document_position_map: Dict[int, str],
         used_position_list: List[int],
     ):
-        position = index
+        # 判断左右索引
+        left, right = index, index
+        right_nums = 0
+        left_nums = 0
         new_content = content
+        target_left, target_right = left, right
         while True:
-            if index in segment_positions:
-                if sep > 0:
-                    new_content = self.splice_contents(
-                        new_content, document_position_map.get(index)
-                    )
-                else:
-                    new_content = self.splice_contents(
-                        document_position_map.get(index), new_content
-                    )
-                if len(new_content) > self.max_token:
-                    break
-                used_position_list.append(index)
-                index = index + sep
-                continue
-            else:
-                if sep > 0:
-                    left, right = index, index + max_window
-                else:
-                    left, right = index - max_window + 1, index + 1
-                _orgin_index = index
-                for _index in range(left, right):
-                    if _index in segment_positions and _index not in used_position_list:
-                        index = _index
-                        break
-                if _orgin_index == index:
-                    break
-            # 检查是否超过规定字符长度
-            # print(f"index: {index}")
-            if sep > 0:
-                prev_content = content
-                next_content = "".join(
-                    document_position_map.get(pos)
-                    for pos in range(position + 1, index + 1)
+            if (
+                right in segment_positions
+                and right not in used_position_list
+                and right_nums <= max_window
+            ):
+                next = "".join(
+                    document_position_map.get(i) for i in range(target_right, right + 1)
                 )
-                used_position_list.extend(range(position, index + 1))
-            else:
-                prev_content = "".join(
-                    document_position_map.get(pos) for pos in range(index, position)
+                _content = self.splice_contents(new_content, next)
+                if len(_content) > self.max_token:
+                    break
+                new_content = _content
+                used_position_list.append(right)
+                target_right = right
+                right_nums = 0
+            if (
+                left in segment_positions
+                and left not in used_position_list
+                and left_nums <= max_window
+            ):
+                prev = "".join(
+                    document_position_map.get(i) for i in range(left, target_left)
                 )
-                next_content = content
-                used_position_list.extend(range(index, position + 1))
-            tmp_content = self.splice_contents(prev_content, next_content)
-            if len(tmp_content) > self.max_token:
+                _content = self.splice_contents(prev, new_content)
+                if len(_content) > self.max_token:
+                    break
+                new_content = _content
+                used_position_list.append(left)
+                target_left = left
+                left_nums = 0
+            if right_nums <= max_window:
+                right += 1
+                right_nums += 1
+            if left_nums <= max_window:
+                left -= 1
+                left_nums += 1
+            if right_nums > max_window and left_nums > max_window:
                 break
-            new_content = tmp_content
         return new_content, used_position_list
 
     def reorganize(
@@ -107,7 +103,7 @@ class NormalPost(RetrievalPostBase):
 
         # print(f"origin_doc_position_map: {origin_doc_position_map}")
         # print(f"origin_position_content_map: {origin_position_content_map}")
-        # print(f"query_position_list: {query_position_list}")
+        print(f"query_position_list: {query_position_list}")
         # Reorganize documents using sliding window
         used_position_map = {}
         for doc in query_document:
@@ -125,16 +121,6 @@ class NormalPost(RetrievalPostBase):
             new_content = doc.page_content
             new_content, used_position_list = self.new_content_merge(
                 position,
-                1,
-                max_window,
-                doc.page_content,
-                segment_positions,
-                origin_position_content_map.get(document_id, {}),
-                used_position_list,
-            )
-            new_content, used_position_list = self.new_content_merge(
-                position,
-                -1,
                 max_window,
                 new_content,
                 segment_positions,
