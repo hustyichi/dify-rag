@@ -112,11 +112,6 @@ def find_codec(blob):
     global all_codecs
     for c in all_codecs:
         try:
-            blob[:1024].decode(c)
-            return c
-        except Exception as e:
-            pass
-        try:
             blob.decode(c)
             return c
         except Exception as e:
