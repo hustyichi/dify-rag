@@ -1,8 +1,7 @@
 from dify_rag.extractor.html_extractor import HtmlExtractor
 from tests.log import logger
 
-file_path = "tests/data/《中国产科麻醉专家共识 (2017) 》解读.html"
-
+file_path = "tests/data/《中国新生儿转运指南(2013)》解读.html"
 
 def test_html_extractor():
     extractor = HtmlExtractor(file_path)
