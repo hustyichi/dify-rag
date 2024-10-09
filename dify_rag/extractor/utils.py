@@ -10,11 +10,11 @@ start_zh_ord, end_zh_ord = ord("一"), ord("龥")
 
 all_codecs = [
     "utf-8",
-    # "gb2312",
+    "gb2312",
     "gbk",
     "utf_16",
-    # "ascii",
-    # "big5",
+    "ascii",
+    "big5",
     "big5hkscs",
     "cp037",
     "cp273",
@@ -60,7 +60,7 @@ all_codecs = [
     "euc_jis_2004",
     "euc_jisx0213",
     "euc_kr",
-    # "gb2312",
+    "gb2312",
     "gb18030",
     "hz",
     "iso2022_jp",
@@ -107,14 +107,10 @@ all_codecs = [
     "utf_7",
 ]
 
+
 def find_codec(blob):
     global all_codecs
     for c in all_codecs:
-        try:
-            blob[:1024].decode(c)
-            return c
-        except Exception as e:
-            pass
         try:
             blob.decode(c)
             return c
