@@ -127,5 +127,4 @@ class NormalPost(RetrievalPostBase):
             doc.page_content = new_content
             reorganized_list.append(doc)
             used_position_list.extend(_used_position_list)
-        logger.info(f"this is normal strategy's result:{reorganized_list}")
         return reorganized_list
