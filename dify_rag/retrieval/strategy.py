@@ -63,11 +63,12 @@ class RetrievalPostStrategy:
         final_documents = []
 
         for document_id, documents in document_map.items():
+            reorganized_documents = self._reorganize(
+                documents, document_id, *args, **kwargs
+            )
             logger.info(
-                f"running document:{document_id}, these're segments:{self.format_segments(documents)}"
+                f"running document:{document_id}, these're segments:{self.format_segments(documents)}, handle segment: {self.format_segments(reorganized_documents)}"
             )
-            final_documents.extend(
-                self._reorganize(documents, document_id, *args, **kwargs)
-            )
+            final_documents.extend(reorganized_documents)
         logger.info(f"this is final_documents:{self.format_segments(final_documents)}")
         return final_documents
