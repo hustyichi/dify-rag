@@ -10,11 +10,11 @@ start_zh_ord, end_zh_ord = ord("一"), ord("龥")
 
 all_codecs = [
     "utf-8",
-    "gb2312",
+    # "gb2312",
     "gbk",
     "utf_16",
-    "ascii",
-    "big5",
+    # "ascii",
+    # "big5",
     "big5hkscs",
     "cp037",
     "cp273",
@@ -60,7 +60,7 @@ all_codecs = [
     "euc_jis_2004",
     "euc_jisx0213",
     "euc_kr",
-    "gb2312",
+    # "gb2312",
     "gb18030",
     "hz",
     "iso2022_jp",
@@ -107,27 +107,9 @@ all_codecs = [
     "utf_7",
 ]
 
-CHARSETS = {
-    "big5": "big5hkscs",
-    "gb2312": "gb18030",
-    "ascii": "utf-8",
-    "maccyrillic": "cp1251",
-    "win1251": "cp1251",
-    "win-1251": "cp1251",
-    "windows-1251": "cp1251",
-}
-
-def fix_charset(encoding):
-    """Overrides encoding when charset declaration
-       or charset determination is a subset of a larger
-       charset.  Created because of issues with Chinese websites"""
-    encoding = encoding.lower()
-    return CHARSETS.get(encoding, encoding)
-
 def find_codec(blob):
     global all_codecs
     for c in all_codecs:
-        c = fix_charset(c)
         try:
             blob[:1024].decode(c)
             return c
