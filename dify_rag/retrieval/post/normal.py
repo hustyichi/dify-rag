@@ -2,6 +2,8 @@
 # File: normal.py
 # Description: None
 
+import logging
+
 # -*- encoding: utf-8 -*-
 # File: retrieval_reorganize.py
 # Description: None
@@ -71,63 +73,57 @@ class NormalPost(RetrievalPostBase):
     def reorganize(
         self,
         query_document: list[Document],
+        document_id: str,
         adjunct: dict[str, list[Document]],
         max_window: int = 2,
     ) -> list[Document]:
         origin_doc_position_map = {}
         origin_position_content_map = {}
-        query_position_list = {}
+        segment_positions = []
         reorganized_list = []
 
         # Process adjunct documents
         try:
-            for document_id, docs in adjunct.items():
-                origin_doc_position_map[document_id] = {
-                    doc.metadata["doc_id"]: doc.metadata["position"] for doc in docs
-                }
-                origin_position_content_map[document_id] = {
-                    doc.metadata["position"]: doc.page_content for doc in docs
-                }
+            docs = adjunct[document_id]
+            origin_doc_position_map = {
+                doc.metadata["doc_id"]: doc.metadata["position"] for doc in docs
+            }
+            origin_position_content_map = {
+                doc.metadata["position"]: doc.page_content for doc in docs
+            }
         except KeyError:
             return query_document
 
         # Process query documents
         for doc in query_document:
-            document_id = doc.metadata.get("document_id")
-            doc.metadata["position"] = origin_doc_position_map.get(document_id, {}).get(
+            doc.metadata["position"] = origin_doc_position_map.get(
                 doc.metadata.get("doc_id")
             )
-            query_position_list.setdefault(document_id, []).append(
-                doc.metadata["position"]
-            )
+            segment_positions.append(doc.metadata["position"])
 
-        # print(f"origin_doc_position_map: {origin_doc_position_map}")
-        # print(f"origin_position_content_map: {origin_position_content_map}")
-        print(f"query_position_list: {query_position_list}")
+        logging.info(
+            f"document_id:{document_id}, segment_positions: {segment_positions}"
+        )
         # Reorganize documents using sliding window
-        used_position_map = {}
+        used_position_list = []
         for doc in query_document:
             # keep docuements order
-            # print(f"this is new doc: {doc}")
-            # print(f"used_position_map: {used_position_map}")
-            document_id, position = doc.metadata.get("document_id"), doc.metadata.get(
-                "position"
-            )
-            if position in used_position_map.get(document_id, []):
+            # logging.info(f"used_position_map: {used_position_map}")
+            position = doc.metadata.get("position")
+            if position in used_position_list:
                 continue
-            segment_positions = query_position_list.get(document_id)
-            used_position_list = used_position_map.get(document_id, [])
             # 构建滑动窗口进行相邻切片合并
             new_content = doc.page_content
-            new_content, used_position_list = self.content_merge(
+            new_content, _used_position_list = self.content_merge(
                 position,
                 max_window,
                 new_content,
                 segment_positions,
-                origin_position_content_map.get(document_id, {}),
+                origin_position_content_map,
                 used_position_list,
             )
             doc.page_content = new_content
             reorganized_list.append(doc)
-            used_position_map.setdefault(document_id, []).extend(used_position_list)
+            used_position_list.extend(_used_position_list)
+        logging.info(f"this is normal strategy's result:{reorganized_list}")
         return reorganized_list
