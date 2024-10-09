@@ -107,10 +107,27 @@ all_codecs = [
     "utf_7",
 ]
 
+CHARSETS = {
+    "big5": "big5hkscs",
+    "gb2312": "gb18030",
+    "ascii": "utf-8",
+    "maccyrillic": "cp1251",
+    "win1251": "cp1251",
+    "win-1251": "cp1251",
+    "windows-1251": "cp1251",
+}
+
+def fix_charset(encoding):
+    """Overrides encoding when charset declaration
+       or charset determination is a subset of a larger
+       charset.  Created because of issues with Chinese websites"""
+    encoding = encoding.lower()
+    return CHARSETS.get(encoding, encoding)
 
 def find_codec(blob):
     global all_codecs
     for c in all_codecs:
+        c = fix_charset(c)
         try:
             blob[:1024].decode(c)
             return c
