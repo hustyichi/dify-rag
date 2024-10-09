@@ -1,29 +1,20 @@
 # -*- encoding: utf-8 -*-
 # File: retrieval_reorganize.py
 # Description: None
+import logging
 
 from dify_rag.models.constants import CUSTOM_SEP
 from dify_rag.models.document import Document
 from dify_rag.retrieval.base import RetrievalPostBase
 
+logger = logging.getLogger(__name__)
+
 
 class TitleStructurePost(RetrievalPostBase):
-    @staticmethod
-    def splice_contents(prev: str, next: str):
-        start_char = next[0]
-        prev_right = len(prev) - 1
-        while 0 <= prev_right:
-            if prev[prev_right] == start_char:
-                similar_segment = prev[prev_right:]
-                if similar_segment == next[: len(similar_segment)]:
-                    next = next[len(similar_segment) :]
-                    break
-            prev_right -= 1
-        return prev + next
-
     def reorganize(
         self,
         query_document: list[Document],
+        document_id: str,
         adjunct: dict[str : list[Document]],
     ) -> list[Document]:
         """Reorganize extracted content
@@ -40,7 +31,6 @@ class TitleStructurePost(RetrievalPostBase):
         title_map = {}
         final_documents_list = []
         for doc in query_document:
-            document_id = doc.metadata.get("document_id")
             title = content = doc.page_content
             if CUSTOM_SEP in doc.page_content:
                 title, content = doc.page_content.split(CUSTOM_SEP)
@@ -93,4 +83,5 @@ class TitleStructurePost(RetrievalPostBase):
             )
             final_documents_list.append(doc)
 
+        logger.info(f"this is normal strategy's result:{final_documents_list}")
         return final_documents_list
