@@ -8,13 +8,15 @@ from typing import List
 from dify_rag.models.constants import CUSTOM_SEP
 from dify_rag.models.document import Document
 
+logger = logging.getLogger(__name__)
+
 
 class RetrievalPreStrategy: ...
 
 
 class RetrievalPostStrategy:
 
-    def __init__(self, max_token: int = 600):
+    def __init__(self, max_token: int = 2000):
         self.max_token = max_token
 
     @staticmethod
@@ -47,7 +49,7 @@ class RetrievalPostStrategy:
     def reorganize(
         self, query_documents: List[Document], *args, **kwargs
     ) -> List[Document]:
-        logging.info(f"original_documents: {self.format_segments(query_documents)}")
+        logger.info(f"original_documents: {self.format_segments(query_documents)}")
         if not query_documents:
             return []
         document_map = {}
@@ -61,11 +63,11 @@ class RetrievalPostStrategy:
         final_documents = []
 
         for document_id, documents in document_map.items():
-            logging.info(
+            logger.info(
                 f"running document:{document_id}, these're segments:{self.format_segments(documents)}"
             )
             final_documents.extend(
                 self._reorganize(documents, document_id, *args, **kwargs)
             )
-        logging.info(f"this is final_documents:{self.format_segments(final_documents)}")
+        logger.info(f"this is final_documents:{self.format_segments(final_documents)}")
         return final_documents

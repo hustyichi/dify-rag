@@ -12,6 +12,8 @@ from typing import Dict, List
 from dify_rag.models.document import Document
 from dify_rag.retrieval.base import RetrievalPostBase
 
+logger = logging.getLogger(__name__)
+
 
 class NormalPost(RetrievalPostBase):
     def content_merge(
@@ -101,14 +103,14 @@ class NormalPost(RetrievalPostBase):
             )
             segment_positions.append(doc.metadata["position"])
 
-        logging.info(
+        logger.info(
             f"document_id:{document_id}, segment_positions: {segment_positions}"
         )
         # Reorganize documents using sliding window
         used_position_list = []
         for doc in query_document:
             # keep docuements order
-            # logging.info(f"used_position_map: {used_position_map}")
+            # logger.info(f"used_position_map: {used_position_map}")
             position = doc.metadata.get("position")
             if position in used_position_list:
                 continue
@@ -125,5 +127,5 @@ class NormalPost(RetrievalPostBase):
             doc.page_content = new_content
             reorganized_list.append(doc)
             used_position_list.extend(_used_position_list)
-        logging.info(f"this is normal strategy's result:{reorganized_list}")
+        logger.info(f"this is normal strategy's result:{reorganized_list}")
         return reorganized_list

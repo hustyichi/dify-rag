@@ -7,6 +7,8 @@ from dify_rag.models.constants import CUSTOM_SEP
 from dify_rag.models.document import Document
 from dify_rag.retrieval.base import RetrievalPostBase
 
+logger = logging.getLogger(__name__)
+
 
 class TitleStructurePost(RetrievalPostBase):
     def reorganize(
@@ -81,5 +83,5 @@ class TitleStructurePost(RetrievalPostBase):
             )
             final_documents_list.append(doc)
 
-        logging.info(f"this is normal strategy's result:{final_documents_list}")
+        logger.info(f"this is normal strategy's result:{final_documents_list}")
         return final_documents_list
