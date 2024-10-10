@@ -81,7 +81,7 @@ class EMRExtractor(BaseExtractor):
             # Update all extracted metadata
             metadata.update(extracted_metadata)
         
-        content = content.split("| 谈话记录 |  |\n|")[1].split("|")[0]
+        content = content.split("谈话记录 |  |\n|")[1].split("|")[0]
         content = "## 谈话记录\n\n" + content
         
         # print(metadata)
@@ -90,8 +90,7 @@ class EMRExtractor(BaseExtractor):
         #     if key not in preset_keys:
         #         metadata.pop(key)
         
-        doc = Document(page_content=content, metadata=metadata)
-        return [doc]
+        return [Document(page_content=content, metadata=metadata)]
     
     def extract_admission_record(self, docs, content):
         """
@@ -168,8 +167,7 @@ class EMRExtractor(BaseExtractor):
             if item in metadata:
                 content += f"### {item}\n\n{metadata[item]}\n\n"
         
-        doc = Document(page_content=content, metadata=metadata)
-        return [doc]
+        return [Document(page_content=content, metadata=metadata)]
     
     def extract_surgery_informed_consent(self, docs, content):
         """
