@@ -1,3 +1,4 @@
+import copy
 import re
 from typing import Optional
 
@@ -14,6 +15,7 @@ class MarkdownExtractor(BaseExtractor):
         remove_images: bool = False,
         encoding: Optional[str] = None,
         autodetect_encoding: bool = True,
+        contain_closest_title_levels: int = 0,
     ):
         """Initialize with file path."""
         self._file_path = file_path
@@ -21,25 +23,45 @@ class MarkdownExtractor(BaseExtractor):
         self._remove_images = remove_images
         self._encoding = encoding
         self._autodetect_encoding = autodetect_encoding
+        self._contain_closest_title_levels = contain_closest_title_levels
 
     def contain_content(self, content: str):
         """Check whether content is empty"""
         cleaned_string = re.sub(r"\s+", "", content)
         return bool(cleaned_string)
 
+    def trans_titles_and_content(self, content: str, titles: list[str]) -> str:
+        titles = titles[-self._contain_closest_title_levels :]
+        if self._contain_closest_title_levels == 0:
+            titles = []
+
+        if not content:
+            return content
+
+        trans_content = ""
+        for title in titles:
+            if not title:
+                continue
+
+            trans_content += f"{title}\n"
+        trans_content += content
+        return trans_content
+
     def extract(self) -> list[Document]:
         """Load from file path."""
         tups, tables = self.parse_tups(self._file_path)
         documents = []
-        for header, value in tups:
+        for hierarchy_header, value in tups:
             if not self.contain_content(value):
                 continue
 
             value = value.strip()
-            if not header:
-                documents.append(Document(page_content=value))
-            else:
-                documents.append(Document(page_content=f"\n\n{header}\n{value}"))
+            documents.append(
+                Document(
+                    page_content=self.trans_titles_and_content(value, hierarchy_header),
+                    metadata={"titles": hierarchy_header},
+                )
+            )
 
         for table in tables:
             if not self.contain_content(table):
@@ -50,11 +72,45 @@ class MarkdownExtractor(BaseExtractor):
 
         return documents
 
-    def markdown_to_tups(self, markdown_text: str) -> list[tuple[Optional[str], str]]:
-        markdown_tups: list[tuple[Optional[str], str]] = []
+    @staticmethod
+    def update_hierarchy_headers(
+        hierarchy_headers: list[str], new_header: str
+    ) -> list[str]:
+        def count_leading_hashes(header: str):
+            if not header:
+                return 0
+
+            match = re.match(r"^(#+)", header)
+            return len(match.group(1)) if match else 0
+
+        def compare_header(header1: str, header2: str):
+            header1_count = count_leading_hashes(header1)
+            header2_count = count_leading_hashes(header2)
+
+            if header1_count == header2_count:
+                return 0
+            elif header1_count > header2_count:
+                return -1
+            else:
+                return 1
+
+        def contain_header_content(header: str):
+            return header.replace("#", "").replace(" ", "")
+
+        while (
+            hierarchy_headers and compare_header(new_header, hierarchy_headers[-1]) >= 0
+        ):
+            hierarchy_headers.pop()
+
+        if contain_header_content(new_header):
+            hierarchy_headers.append(new_header)
+        return hierarchy_headers
+
+    def markdown_to_tups(self, markdown_text: str) -> list[tuple[list[str], str]]:
+        markdown_tups: list[tuple[list[str], str]] = []
         lines = markdown_text.split("\n")
 
-        current_header = ""
+        hierarchy_headers: list[str] = []
         current_text = ""
         code_block_flag = False
 
@@ -77,13 +133,18 @@ class MarkdownExtractor(BaseExtractor):
             header_match = re.match(r"^#+\s", line)
             if header_match:
                 if current_text:
-                    markdown_tups.append((current_header, current_text))
+                    markdown_tups.append(
+                        (copy.deepcopy(hierarchy_headers), current_text)
+                    )
 
-                current_header = line
+                hierarchy_headers = MarkdownExtractor.update_hierarchy_headers(
+                    hierarchy_headers, line
+                )
                 current_text = ""
             else:
                 current_text += line + "\n"
-        markdown_tups.append((current_header, current_text))
+        if current_text:
+            markdown_tups.append((copy.deepcopy(hierarchy_headers), current_text))
 
         return markdown_tups
 
@@ -131,7 +192,7 @@ class MarkdownExtractor(BaseExtractor):
 
     def parse_tups(
         self, filepath: str
-    ) -> tuple[list[tuple[Optional[str], str]], list[str]]:
+    ) -> tuple[list[tuple[list[str], str]], list[str]]:
         file_encoding = self._encoding
         if not file_encoding:
             file_encoding = utils.get_encoding(filepath)
