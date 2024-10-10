@@ -1,13 +1,8 @@
 import os
 import re
-from dify_rag.extractor.html_extractor import HtmlExtractor
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import html_text, readability
 from dify_rag.models.document import Document
-
-
-
-
 
 class EMRExtractor(BaseExtractor):
     def __init__(
@@ -15,48 +10,76 @@ class EMRExtractor(BaseExtractor):
         docs: list[Document]
     ) -> None:
         self._docs = docs
-        
+        self.TALK_RECORD = "谈话记录"
+        self.ADMISSION_RECORD = "入院记录"
+        self.SURGERY_CONSENT = "手术知情同意书"
+        self.UNKNOWN_CASE = "未知病例"
+        self.type_indicators: Dict[str, List[Tuple[str, float]]] = {
+            self.TALK_RECORD: [
+                ("[ 谈 话 记 录 ]", 0.6),
+                ("谈话记录", 0.4),
+                ("审核医师", 0.2),
+                ("书写医师", 0.2),
+            ],
+            self.ADMISSION_RECORD: [
+                ("[ 入 院 记 录 ]", 0.6),
+                ("入院记录", 0.4),
+                ("主诉", 0.3),
+                ("现病史", 0.3),
+                ("既往史", 0.3),
+                ("个人史", 0.2),
+                ("婚育史", 0.2),
+                ("家族史", 0.2),
+                ("初步诊断", 0.2),
+            ],
+            self.SURGERY_CONSENT: [
+                ("[ 手术知情同意书 ]", 0.6),
+                ("手术知情同意书", 0.4),
+                ("简要病情", 0.3),
+                ("术前诊断", 0.3),
+                ("拟实施手术名称", 0.3),
+                ("拟实施麻醉方式", 0.3),
+                ("手术风险", 0.2),
+                ("主刀医师签名", 0.2),
+            ],
+        }
+    
     def extract(self) -> list[Document]:
-        docs = self._docs
-        content = ""
-        for doc in docs:
-            content += "\n" + doc.page_content
+        content = "\n".join(doc.page_content for doc in self._docs)
         EMR_type = self.EMR_type_recognize(content)
-        docs = self.extract_by_type(EMR_type, docs, content)
-        return docs
+        return self.extract_by_type(EMR_type, self._docs, content)
 
-    def EMR_type_recognize(self, content):
-        if "[ 谈 话 记 录 ]" in content and "谈话记录" in content:
-            return "谈话记录"
-        elif "[ 入 院 记 录 ]" in content and "入院记录" in content:
-            return "入院记录"
-        elif "主诉：" in content and "现病史：" in content and "既往史：" in content:
-            return "入院记录"
-        elif "[ 手术情同意书 ]" in content:
-            return "手术知情同意书"
-        elif "简要病情：" in content and "术前诊断：" in content and "拟实施手术名称：" in content:
-            return "手术知情同意书"
-        return "未知病例"
+    def EMR_type_recognize(self, content: str) -> str:
+        scores = {emr_type: 0.0 for emr_type in self.type_indicators}
+        
+        for emr_type, indicators in self.type_indicators.items():
+            for indicator, weight in indicators:
+                if indicator in content:
+                    scores[emr_type] += weight
 
-    def extract_by_type(self, EMR_type, docs, content):
-        if EMR_type == "谈话记录":
-            return self.extract_talk_record(docs, content)
-        elif EMR_type == "入院记录":
-            return self.extract_admission_record(docs, content)
-        elif EMR_type == "手术知情同意书":
-            return self.extract_surgery_informed_consent(docs, content)
-        else:
-            return docs
+        max_score = max(scores.values())
+        if max_score > 1.0:
+            return max(scores, key=scores.get)
+        return self.UNKNOWN_CASE
         
     def extract_metadata(self, content: str) -> dict:
         """
         Extract the metadata
         """
         pattern = r'(\w+)\s*[:：]\s*\[\s*([^\]]+?)\s*\]'
-        # pattern = r'(\w+):\[([^\]]+)\]'
         matches = re.findall(pattern, content)
         metadata = {key: value for key, value in matches}
         return metadata
+    
+    def extract_by_type(self, EMR_type: str, docs: list[Document], content: str) -> list[Document]:
+        if EMR_type == self.TALK_RECORD:
+            return self.extract_talk_record(docs, content)
+        elif EMR_type == self.ADMISSION_RECORD:
+            return self.extract_admission_record(docs, content)
+        elif EMR_type == self.SURGERY_CONSENT:
+            return self.extract_surgery_informed_consent(docs, content)
+        else:
+            return docs
     
     def extract_talk_record(self, docs, content) -> list[Document]:
         """
@@ -84,7 +107,6 @@ class EMRExtractor(BaseExtractor):
         content = content.split("谈话记录 |  |\n|")[1].split("|")[0]
         content = "## 谈话记录\n\n" + content
         
-        # print(metadata)
         # Remove keys not in the preset key list
         # for key in list(metadata.keys()):
         #     if key not in preset_keys:
@@ -143,8 +165,6 @@ class EMRExtractor(BaseExtractor):
                 metadata["修正诊断"] = re.sub(r'[^\u4e00-\u9fa5\d\.、]+', '', match.group(1).strip())
             else:
                 metadata["修正诊断"] = ""
-        from pprint import pprint
-        pprint(metadata)
         
         content = "## 入院记录\n\n"
         
@@ -220,3 +240,17 @@ class EMRExtractor(BaseExtractor):
                 content += f"### {item}\n\n{metadata[item]}\n\n"
         
         return [Document(page_content=content, metadata=metadata)]
+
+if __name__ == "__main__":
+    from dify_rag.extractor.html_extractor import HtmlExtractor
+    emr_folder = "test-html/住院病例"
+    emr_files = os.listdir(emr_folder)
+    print(emr_files)
+
+    emr_file = "手术知情同意书.html"
+    html_extractor = HtmlExtractor(os.path.join(emr_folder, emr_file))
+    docs = html_extractor.extract()
+    emr_extractor = EMRExtractor(docs)
+    docs = emr_extractor.extract()
+    print(docs[0].page_content)
+    print(docs[0].metadata)
