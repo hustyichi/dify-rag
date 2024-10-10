@@ -7,13 +7,17 @@ from dify_rag.models.document import Document
 class EMRExtractor(BaseExtractor):
     def __init__(
         self,
-        docs: list[Document]
+        docs: list[Document],
+        TALK_RECORD: str = "谈话记录",
+        ADMISSION_RECORD: str = "入院记录",
+        SURGERY_CONSENT: str = "手术知情同意书",
+        UNKNOWN_CASE: str = "未知病例",
     ) -> None:
         self._docs = docs
-        self.TALK_RECORD = "谈话记录"
-        self.ADMISSION_RECORD = "入院记录"
-        self.SURGERY_CONSENT = "手术知情同意书"
-        self.UNKNOWN_CASE = "未知病例"
+        self.TALK_RECORD = TALK_RECORD
+        self.ADMISSION_RECORD = ADMISSION_RECORD
+        self.SURGERY_CONSENT = SURGERY_CONSENT
+        self.UNKNOWN_CASE = UNKNOWN_CASE
         self.type_indicators: Dict[str, List[Tuple[str, float]]] = {
             self.TALK_RECORD: [
                 ("[ 谈 话 记 录 ]", 0.6),
