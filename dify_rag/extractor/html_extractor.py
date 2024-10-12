@@ -5,7 +5,7 @@ from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import html_text, readability
 from dify_rag.models.document import Document
 
-
+from dify_rag.extractor.EMR_extractor import EMRExtractor
 class HtmlExtractor(BaseExtractor):
     def __init__(
         self,
@@ -120,6 +120,12 @@ class HtmlExtractor(BaseExtractor):
             self._file_path, "r", encoding=utils.get_encoding(self._file_path)
         ) as f:
             text = f.read()
+            
+            # check if the file is an EMR file
+            emr_extractor = EMRExtractor(self._file_path)
+            emr_type = emr_extractor.emr_type_recognize(text)
+            if emr_type:
+                return emr_extractor.extract(emr_type)
 
             # preprocess
             text, tables = self.preprocessing(text)

@@ -121,7 +121,7 @@ class EMRExtractor(BaseExtractor):
             trans_titles.append(title)
         return trans_titles
     
-    def EMR_type_recognize(self, content: str) -> str:
+    def emr_type_recognize(self, content: str) -> str:
         
         EMR_TYPES = {
             "谈话记录]": (self.TALK_RECORD, [
@@ -162,14 +162,14 @@ class EMRExtractor(BaseExtractor):
 
         return False
 
-    def extract(self, EMR_type: str = None) -> list[Document]:
+    def extract(self, emr_type: str = None) -> list[Document]:
         with open(
             self._file_path, "r", encoding=utils.get_encoding(self._file_path)
         ) as f:
             text = f.read()
             
-            if EMR_type is None:
-                EMR_type = self.EMR_type_recognize(text)
+            if emr_type is None:
+                emr_type = self.emr_type_recognize(text)
               
             # preprocess
             text, tables = self.preprocessing(text)
@@ -194,7 +194,7 @@ class EMRExtractor(BaseExtractor):
                 docs.append(Document(page_content=table))
             
             content = "\n".join(doc.page_content for doc in docs)
-            return self.extract_by_type(EMR_type, docs, content)
+            return self.extract_by_type(emr_type, docs, content)
 
         
     def extract_metadata(self, content: str) -> dict:
@@ -206,12 +206,12 @@ class EMRExtractor(BaseExtractor):
         metadata = {key: value for key, value in matches}
         return metadata
     
-    def extract_by_type(self, EMR_type: str, docs: list[Document], content: str) -> list[Document]:
-        if EMR_type == self.TALK_RECORD:
+    def extract_by_type(self, emr_type: str, docs: list[Document], content: str) -> list[Document]:
+        if emr_type == self.TALK_RECORD:
             return self.extract_talk_record(docs, content)
-        elif EMR_type == self.ADMISSION_RECORD:
+        elif emr_type == self.ADMISSION_RECORD:
             return self.extract_admission_record(docs, content)
-        elif EMR_type == self.SURGERY_CONSENT:
+        elif emr_type == self.SURGERY_CONSENT:
             return self.extract_surgery_informed_consent(docs, content)
         else:
             return docs
