@@ -1,5 +1,7 @@
-import os
 import re
+from bs4 import BeautifulSoup
+
+from dify_rag.extractor import utils
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import html_text, readability
 from dify_rag.models.document import Document
@@ -7,64 +9,193 @@ from dify_rag.models.document import Document
 class EMRExtractor(BaseExtractor):
     def __init__(
         self,
-        docs: list[Document],
+        file_path: str,
+        remove_hyperlinks: bool = True,
+        fix_check: bool = True,
+        contain_closest_title_levels: int = 0,
+        title_convert_to_markdown: bool = False,
         TALK_RECORD: str = "谈话记录",
         ADMISSION_RECORD: str = "入院记录",
         SURGERY_CONSENT: str = "手术知情同意书",
-        UNKNOWN_CASE: str = "未知病例",
     ) -> None:
-        self._docs = docs
+        self._file_path = file_path
+        self._remove_hyperlinks = remove_hyperlinks
+        self._fix_check = fix_check
+        self._contain_closest_title_levels = contain_closest_title_levels
+        self._title_convert_to_markdown = title_convert_to_markdown
         self.TALK_RECORD = TALK_RECORD
         self.ADMISSION_RECORD = ADMISSION_RECORD
         self.SURGERY_CONSENT = SURGERY_CONSENT
-        self.UNKNOWN_CASE = UNKNOWN_CASE
-        self.type_indicators: Dict[str, List[Tuple[str, float]]] = {
-            self.TALK_RECORD: [
-                ("[ 谈 话 记 录 ]", 0.6),
-                ("谈话记录", 0.4),
-                ("审核医师", 0.2),
-                ("书写医师", 0.2),
-            ],
-            self.ADMISSION_RECORD: [
-                ("[ 入 院 记 录 ]", 0.6),
-                ("入院记录", 0.4),
-                ("主诉", 0.3),
-                ("现病史", 0.3),
-                ("既往史", 0.3),
-                ("个人史", 0.2),
-                ("婚育史", 0.2),
-                ("家族史", 0.2),
-                ("初步诊断", 0.2),
-            ],
-            self.SURGERY_CONSENT: [
-                ("[ 手术知情同意书 ]", 0.6),
-                ("手术知情同意书", 0.4),
-                ("简要病情", 0.3),
-                ("术前诊断", 0.3),
-                ("拟实施手术名称", 0.3),
-                ("拟实施麻醉方式", 0.3),
-                ("手术风险", 0.2),
-                ("主刀医师签名", 0.2),
-            ],
-        }
+
+    @staticmethod
+    def convert_table_to_markdown(table) -> str:
+        md = []
+        rows = table.find_all("tr")
+        for row in rows:
+            cells = row.find_all(["th", "td"])
+            row_text = (
+                "| " + " | ".join(cell.get_text(strip=True) for cell in cells) + " |"
+            )
+            md.append(row_text)
+
+            if row.find("th"):
+                header_sep = "| " + " | ".join("---" for _ in cells) + " |"
+                md.append(header_sep)
+
+        return "\n".join(md)
+
+    def preprocessing(self, content: str) -> tuple:
+        soup = BeautifulSoup(content, "html.parser")
+
+        # clean hyperlinks
+        if self._remove_hyperlinks:
+            a_tags = soup.find_all("a")
+            for tag in a_tags:
+                text = tag.get_text()
+                cleaned_text = text.replace("\n", " ").replace("\r", "")
+                tag.replace_with(cleaned_text)
+
+        # clean unchecked checkboxes and radio buttons
+        if self._fix_check:
+            match_inputs = soup.find_all("input", {"type": ["checkbox", "radio"]})
+            for input_tag in match_inputs:
+                if not input_tag.has_attr("checked"):
+                    next_span = input_tag.find_next_sibling("span")
+                    if next_span:
+                        next_span.extract()
+                    input_tag.extract()
+
+        # split tables
+        tables_md = []
+        tables = soup.find_all("table")
+        for table in tables:
+            table_md = self.convert_table_to_markdown(table)
+            tables_md.append(table_md)
+            table.decompose()
+
+        return str(soup), tables_md
+
+    @staticmethod
+    def convert_to_markdown(html_tag: str, title: str) -> str:
+        if not (title and html_tag):
+            return title
+
+        html_tag = html_tag.lower()
+        if html_tag.startswith("h") and html_tag[1:].isdigit():
+            level = int(html_tag[1])
+            return f'{"#" * level} {title}'
+        else:
+            return title
+
+    def trans_titles_and_content(
+        self, content: str, titles: list[tuple[str, str]]
+    ) -> str:
+        titles = titles[-self._contain_closest_title_levels :]
+        if self._contain_closest_title_levels == 0:
+            titles = []
+
+        if not content:
+            return content
+
+        trans_content = ""
+        for tag, title in titles:
+            if not title:
+                continue
+
+            if self._title_convert_to_markdown:
+                title = HtmlExtractor.convert_to_markdown(tag, title)
+
+            trans_content += f"{title}\n"
+        trans_content += content
+        return trans_content
+
+    def trans_meta_titles(self, titles: list[tuple[str, str]]):
+        trans_titles = []
+        for tag, title in titles:
+            if not title:
+                continue
+
+            if self._title_convert_to_markdown:
+                title = HtmlExtractor.convert_to_markdown(tag, title)
+
+            trans_titles.append(title)
+        return trans_titles
     
-    def extract(self) -> list[Document]:
-        content = "\n".join(doc.page_content for doc in self._docs)
-        EMR_type = self.EMR_type_recognize(content)
-        return self.extract_by_type(EMR_type, self._docs, content)
-
     def EMR_type_recognize(self, content: str) -> str:
-        scores = {emr_type: 0.0 for emr_type in self.type_indicators}
         
-        for emr_type, indicators in self.type_indicators.items():
-            for indicator, weight in indicators:
-                if indicator in content:
-                    scores[emr_type] += weight
+        EMR_TYPES = {
+            "谈话记录]": (self.TALK_RECORD, [
+                ('table', '基本信息'), 
+                ('table', '谈话记录')
+                ]),
+            "入院记录]": (self.ADMISSION_RECORD, [
+                ('p', '主诉'),
+                ('p', '现病史')
+                ]),
+            "入出院记录]": (self.ADMISSION_RECORD, [
+                ('p', '主诉'), 
+                ('p', '现病史')
+                ]),
+            "手术知情同意书]": (self.SURGERY_CONSENT, [
+                ('p', '简要病情'),
+                ('p', '术前诊断'),
+                ('p', '拟实施手术名称'),
+                ])
+        }
+        
+        soup = BeautifulSoup(content, 'html.parser')
+        header = soup.find('header')
+        
+        if not header:
+            return False
+        
+        title_text = header.text.strip().replace(" ", "")
+        
+        def find_element(tag, data_name):
+            return soup.find(tag, {'data-name': data_name}) or \
+                soup.find(lambda t: t.name == tag and t.text.startswith(f'{data_name}：'))
+        
+        for key, (emr_type, required_elements) in EMR_TYPES.items():
+            if key in title_text:
+                if all(find_element(tag, data_name) for tag, data_name in required_elements):
+                    return emr_type
 
-        max_score = max(scores.values())
-        if max_score > 1.0:
-            return max(scores, key=scores.get)
-        return self.UNKNOWN_CASE
+        return False
+
+    def extract(self, EMR_type: str = None) -> list[Document]:
+        with open(
+            self._file_path, "r", encoding=utils.get_encoding(self._file_path)
+        ) as f:
+            text = f.read()
+            
+            if EMR_type is None:
+                EMR_type = self.EMR_type_recognize(text)
+              
+            # preprocess
+            text, tables = self.preprocessing(text)
+
+            html_doc = readability.Document(text)
+            content, split_contents, titles = html_text.extract_text(
+                html_doc.summary(html_partial=True), title=html_doc.title()
+            )
+
+            docs = []
+            for content, hierarchy_titles in zip(split_contents, titles):
+                docs.append(
+                    Document(
+                        page_content=self.trans_titles_and_content(
+                            content, hierarchy_titles
+                        ),
+                        metadata={"titles": self.trans_meta_titles(hierarchy_titles)},
+                    )
+                )
+
+            for table in tables:
+                docs.append(Document(page_content=table))
+            
+            content = "\n".join(doc.page_content for doc in docs)
+            return self.extract_by_type(EMR_type, docs, content)
+
         
     def extract_metadata(self, content: str) -> dict:
         """
@@ -244,17 +375,3 @@ class EMRExtractor(BaseExtractor):
                 content += f"### {item}\n\n{metadata[item]}\n\n"
         
         return [Document(page_content=content, metadata=metadata)]
-
-if __name__ == "__main__":
-    from dify_rag.extractor.html_extractor import HtmlExtractor
-    emr_folder = "test-html/住院病例"
-    emr_files = os.listdir(emr_folder)
-    print(emr_files)
-
-    emr_file = "手术知情同意书.html"
-    html_extractor = HtmlExtractor(os.path.join(emr_folder, emr_file))
-    docs = html_extractor.extract()
-    emr_extractor = EMRExtractor(docs)
-    docs = emr_extractor.extract()
-    print(docs[0].page_content)
-    print(docs[0].metadata)
