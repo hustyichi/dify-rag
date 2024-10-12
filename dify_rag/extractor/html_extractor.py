@@ -1,3 +1,5 @@
+import re
+
 from bs4 import BeautifulSoup
 
 from dify_rag.extractor import utils
@@ -40,6 +42,12 @@ class HtmlExtractor(BaseExtractor):
 
     def preprocessing(self, content: str) -> tuple:
         soup = BeautifulSoup(content, "html.parser")
+
+        # clean header contents
+        for tag in soup.find_all(re.compile("^h[1-6]$")):
+            tag_text = tag.get_text()
+            tag.clear()
+            tag.string = tag_text.replace("\n", " ").replace("\r", "")
 
         # clean hyperlinks
         if self._remove_hyperlinks:
