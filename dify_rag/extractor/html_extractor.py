@@ -18,6 +18,7 @@ class HtmlExtractor(BaseExtractor):
         contain_closest_title_levels: int = 0,
         title_convert_to_markdown: bool = False,
         use_first_header_as_title: bool = False,
+        seperate_tables: bool = True,
     ) -> None:
         self._file_path = file_path
         self._remove_hyperlinks = remove_hyperlinks
@@ -25,6 +26,7 @@ class HtmlExtractor(BaseExtractor):
         self._contain_closest_title_levels = contain_closest_title_levels
         self._title_convert_to_markdown = title_convert_to_markdown
         self._use_first_header_as_title = use_first_header_as_title
+        self._seperate_tables = seperate_tables
 
     @staticmethod
     def convert_table_to_markdown(table) -> str:
@@ -106,7 +108,9 @@ class HtmlExtractor(BaseExtractor):
                         next_span.extract()
                     input_tag.extract()
 
-        tables = self.recursive_preprocess_tables(soup, title)
+        tables = []
+        if self._seperate_tables:
+            tables = self.recursive_preprocess_tables(soup, title)
         return str(soup), tables, title
 
     @staticmethod
