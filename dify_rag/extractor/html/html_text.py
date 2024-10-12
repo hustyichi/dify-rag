@@ -7,6 +7,8 @@ import lxml
 import lxml.etree
 from lxml.html.clean import Cleaner
 
+from dify_rag.extractor.html import constants
+
 
 class SupType(enum.Enum):
     UNKNOWN = "unknown"
@@ -62,9 +64,6 @@ SPLIT_TAGS = [
     "h3",
     "h4",
 ]
-
-TITLE_KEY = "title"
-NO_TITLE = "[no-title]"
 
 cleaner = Cleaner(
     scripts=True,
@@ -143,8 +142,8 @@ def etree_to_text(
     split_texts = []
     split_texts_hierarch_titles = []
     current_hierarchy_titles = []
-    if title and title != NO_TITLE:
-        current_hierarchy_titles.append((TITLE_KEY, title))
+    if title and title != constants.NO_TITLE:
+        current_hierarchy_titles.append((constants.TITLE_KEY, title))
 
     _NEWLINE = object()
     _DOUBLE_NEWLINE = object()
@@ -222,18 +221,8 @@ def etree_to_text(
         prev = text_content
 
     def compare_html_tags(tag1, tag2):
-        tag_hierarchy = {
-            TITLE_KEY: 100,
-            "h1": 6,
-            "h2": 5,
-            "h3": 4,
-            "h4": 3,
-            "h5": 2,
-            "h6": 1,
-        }
-
-        level1 = tag_hierarchy.get(tag1.lower(), 0)
-        level2 = tag_hierarchy.get(tag2.lower(), 0)
+        level1 = constants.TAG_HIERARCHY.get(tag1.lower(), 0)
+        level2 = constants.TAG_HIERARCHY.get(tag2.lower(), 0)
 
         if level1 > level2:
             return 1
