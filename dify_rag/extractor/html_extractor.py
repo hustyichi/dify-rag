@@ -16,12 +16,14 @@ class HtmlExtractor(BaseExtractor):
         fix_check: bool = True,
         contain_closest_title_levels: int = 0,
         title_convert_to_markdown: bool = False,
+        use_first_header_as_title: bool = False,
     ) -> None:
         self._file_path = file_path
         self._remove_hyperlinks = remove_hyperlinks
         self._fix_check = fix_check
         self._contain_closest_title_levels = contain_closest_title_levels
         self._title_convert_to_markdown = title_convert_to_markdown
+        self._use_first_header_as_title = use_first_header_as_title
 
     @staticmethod
     def convert_table_to_markdown(table) -> str:
@@ -42,6 +44,11 @@ class HtmlExtractor(BaseExtractor):
 
     def preprocessing(self, content: str) -> tuple:
         soup = BeautifulSoup(content, "html.parser")
+
+        first_header_content = ""
+        header = soup.find(["h1", "h2"])
+        if header:
+            first_header_content = header.get_text().strip()
 
         # clean header contents
         for tag in soup.find_all(re.compile("^h[1-6]$")):
@@ -75,7 +82,7 @@ class HtmlExtractor(BaseExtractor):
             tables_md.append(table_md)
             table.decompose()
 
-        return str(soup), tables_md
+        return str(soup), tables_md, first_header_content
 
     @staticmethod
     def convert_to_markdown(html_tag: str, title: str) -> str:
@@ -130,11 +137,14 @@ class HtmlExtractor(BaseExtractor):
             text = f.read()
 
             # preprocess
-            text, tables = self.preprocessing(text)
+            text, tables, first_header_content = self.preprocessing(text)
 
             html_doc = readability.Document(text)
+            title = html_doc.title()
+            if first_header_content and self._use_first_header_as_title:
+                title = first_header_content
             content, split_contents, titles = html_text.extract_text(
-                html_doc.summary(html_partial=True), title=html_doc.title()
+                html_doc.summary(html_partial=True), title=title
             )
 
             docs = []
