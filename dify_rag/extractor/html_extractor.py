@@ -42,13 +42,12 @@ class HtmlExtractor(BaseExtractor):
 
         return "\n".join(md)
 
-    def preprocessing(self, content: str) -> tuple:
+    def preprocessing(self, content: str, title: str) -> tuple:
         soup = BeautifulSoup(content, "html.parser")
 
-        first_header_content = ""
         header = soup.find(["h1", "h2"])
-        if header:
-            first_header_content = header.get_text().strip()
+        if header and self._use_first_header_as_title:
+            title = header.get_text().strip()
 
         # clean header contents
         for tag in soup.find_all(re.compile("^h[1-6]$")):
@@ -82,7 +81,7 @@ class HtmlExtractor(BaseExtractor):
             tables_md.append(table_md)
             table.decompose()
 
-        return str(soup), tables_md, first_header_content
+        return str(soup), tables_md, title
 
     @staticmethod
     def convert_to_markdown(html_tag: str, title: str) -> str:
@@ -137,12 +136,11 @@ class HtmlExtractor(BaseExtractor):
             text = f.read()
 
             # preprocess
-            text, tables, first_header_content = self.preprocessing(text)
+            text, tables, title = self.preprocessing(
+                text, readability.Document(text).title()
+            )
 
             html_doc = readability.Document(text)
-            title = html_doc.title()
-            if first_header_content and self._use_first_header_as_title:
-                title = first_header_content
             content, split_contents, titles = html_text.extract_text(
                 html_doc.summary(html_partial=True), title=title
             )
