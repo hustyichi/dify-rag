@@ -1,8 +1,11 @@
+import copy
+import re
+
 from bs4 import BeautifulSoup
 
 from dify_rag.extractor import utils
 from dify_rag.extractor.extractor_base import BaseExtractor
-from dify_rag.extractor.html import html_text, readability
+from dify_rag.extractor.html import constants, html_text, readability
 from dify_rag.models.document import Document
 
 
@@ -14,17 +17,23 @@ class HtmlExtractor(BaseExtractor):
         fix_check: bool = True,
         contain_closest_title_levels: int = 0,
         title_convert_to_markdown: bool = False,
+        use_first_header_as_title: bool = False,
+        seperate_tables: bool = True,
     ) -> None:
         self._file_path = file_path
         self._remove_hyperlinks = remove_hyperlinks
         self._fix_check = fix_check
         self._contain_closest_title_levels = contain_closest_title_levels
         self._title_convert_to_markdown = title_convert_to_markdown
+        self._use_first_header_as_title = use_first_header_as_title
+        self._seperate_tables = seperate_tables
 
     @staticmethod
     def convert_table_to_markdown(table) -> str:
         md = []
         rows = table.find_all("tr")
+        first_row = True
+
         for row in rows:
             cells = row.find_all(["th", "td"])
             row_text = (
@@ -32,14 +41,57 @@ class HtmlExtractor(BaseExtractor):
             )
             md.append(row_text)
 
-            if row.find("th"):
+            if row.find("th") or first_row:
                 header_sep = "| " + " | ".join("---" for _ in cells) + " |"
                 md.append(header_sep)
+                first_row = False
 
         return "\n".join(md)
 
-    def preprocessing(self, content: str) -> tuple:
+    def recursive_preprocess_tables(self, soup: BeautifulSoup, title: str) -> list:
+        table_with_titles = []
+        title_stack = []
+        if title:
+            title_stack.append((constants.TITLE_KEY, title))
+
+        match_tags = [
+            key for key in constants.TAG_HIERARCHY.keys() if key != constants.TITLE_KEY
+        ] + ["table"]
+        for tag in soup.find_all(match_tags):
+
+            if tag.name in constants.TAG_HIERARCHY:
+                level = constants.TAG_HIERARCHY[tag.name]
+                title_text = tag.get_text(strip=True)
+
+                while (
+                    title_stack and constants.TAG_HIERARCHY[title_stack[-1][0]] <= level
+                ):
+                    title_stack.pop()
+
+                title_stack.append((tag.name, title_text))
+
+            elif tag.name == "table":
+                table_md = HtmlExtractor.convert_table_to_markdown(tag)
+                tag.decompose()
+
+                table_with_titles.append(
+                    {"table": table_md, "titles": copy.deepcopy(title_stack)}
+                )
+
+        return table_with_titles
+
+    def preprocessing(self, content: str, title: str) -> tuple:
         soup = BeautifulSoup(content, "html.parser")
+
+        header = soup.find(["h1", "h2"])
+        if header and self._use_first_header_as_title:
+            title = header.get_text().strip()
+
+        # clean header contents
+        for tag in soup.find_all(re.compile("^h[1-6]$")):
+            tag_text = tag.get_text()
+            tag.clear()
+            tag.string = tag_text.replace("\n", " ").replace("\r", "")
 
         # clean hyperlinks
         if self._remove_hyperlinks:
@@ -59,15 +111,10 @@ class HtmlExtractor(BaseExtractor):
                         next_span.extract()
                     input_tag.extract()
 
-        # split tables
-        tables_md = []
-        tables = soup.find_all("table")
-        for table in tables:
-            table_md = HtmlExtractor.convert_table_to_markdown(table)
-            tables_md.append(table_md)
-            table.decompose()
-
-        return str(soup), tables_md
+        tables = []
+        if self._seperate_tables:
+            tables = self.recursive_preprocess_tables(soup, title)
+        return str(soup), tables, title
 
     @staticmethod
     def convert_to_markdown(html_tag: str, title: str) -> str:
@@ -122,11 +169,13 @@ class HtmlExtractor(BaseExtractor):
             text = f.read()
 
             # preprocess
-            text, tables = self.preprocessing(text)
+            text, tables, title = self.preprocessing(
+                text, readability.Document(text).title()
+            )
 
             html_doc = readability.Document(text)
             content, split_contents, titles = html_text.extract_text(
-                html_doc.summary(html_partial=True), title=html_doc.title()
+                html_doc.summary(html_partial=True), title=title
             )
 
             docs = []
@@ -141,6 +190,11 @@ class HtmlExtractor(BaseExtractor):
                 )
 
             for table in tables:
-                docs.append(Document(page_content=table))
+                docs.append(
+                    Document(
+                        page_content=table["table"],
+                        metadata={"titles": self.trans_meta_titles(table["titles"])},
+                    )
+                )
 
             return docs
