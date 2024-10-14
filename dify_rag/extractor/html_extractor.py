@@ -32,6 +32,8 @@ class HtmlExtractor(BaseExtractor):
     def convert_table_to_markdown(table) -> str:
         md = []
         rows = table.find_all("tr")
+        first_row = True
+
         for row in rows:
             cells = row.find_all(["th", "td"])
             row_text = (
@@ -39,9 +41,10 @@ class HtmlExtractor(BaseExtractor):
             )
             md.append(row_text)
 
-            if row.find("th"):
+            if row.find("th") or first_row:
                 header_sep = "| " + " | ".join("---" for _ in cells) + " |"
                 md.append(header_sep)
+                first_row = False
 
         return "\n".join(md)
 
