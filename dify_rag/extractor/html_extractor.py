@@ -52,7 +52,7 @@ class HtmlExtractor(BaseExtractor):
     def recursive_preprocess_tables(soup: BeautifulSoup, title: str) -> list:
         table_with_titles = []
         title_stack = []
-        if title:
+        if title and title != constants.NO_TITLE:
             title_stack.append((constants.TITLE_KEY, title))
 
         match_tags = [
