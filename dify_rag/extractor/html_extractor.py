@@ -48,7 +48,8 @@ class HtmlExtractor(BaseExtractor):
 
         return "\n".join(md)
 
-    def recursive_preprocess_tables(self, soup: BeautifulSoup, title: str) -> list:
+    @staticmethod
+    def recursive_preprocess_tables(soup: BeautifulSoup, title: str) -> list:
         table_with_titles = []
         title_stack = []
         if title:
@@ -80,11 +81,19 @@ class HtmlExtractor(BaseExtractor):
 
         return table_with_titles
 
-    def preprocessing(self, content: str, title: str) -> tuple:
+    @staticmethod
+    def preprocessing(
+        content: str,
+        title: str,
+        use_first_header_as_title: bool = False,
+        remove_hyperlinks: bool = True,
+        fix_check: bool = True,
+        seperate_tables: bool = True,
+    ) -> tuple:
         soup = BeautifulSoup(content, "html.parser")
 
         header = soup.find(["h1", "h2"])
-        if header and self._use_first_header_as_title:
+        if header and use_first_header_as_title:
             title = header.get_text().strip()
 
         # clean header contents
@@ -94,7 +103,7 @@ class HtmlExtractor(BaseExtractor):
             tag.string = tag_text.replace("\n", " ").replace("\r", "")
 
         # clean hyperlinks
-        if self._remove_hyperlinks:
+        if remove_hyperlinks:
             a_tags = soup.find_all("a")
             for tag in a_tags:
                 text = tag.get_text()
@@ -102,7 +111,7 @@ class HtmlExtractor(BaseExtractor):
                 tag.replace_with(cleaned_text)
 
         # clean unchecked checkboxes and radio buttons
-        if self._fix_check:
+        if fix_check:
             match_inputs = soup.find_all("input", {"type": ["checkbox", "radio"]})
             for input_tag in match_inputs:
                 if not input_tag.has_attr("checked"):
@@ -112,8 +121,8 @@ class HtmlExtractor(BaseExtractor):
                     input_tag.extract()
 
         tables = []
-        if self._seperate_tables:
-            tables = self.recursive_preprocess_tables(soup, title)
+        if seperate_tables:
+            tables = HtmlExtractor.recursive_preprocess_tables(soup, title)
         return str(soup), tables, title
 
     @staticmethod
@@ -128,11 +137,15 @@ class HtmlExtractor(BaseExtractor):
         else:
             return title
 
+    @staticmethod
     def trans_titles_and_content(
-        self, content: str, titles: list[tuple[str, str]]
+        content: str,
+        titles: list[tuple[str, str]],
+        contain_closest_title_levels: int,
+        title_convert_to_markdown: bool,
     ) -> str:
-        titles = titles[-self._contain_closest_title_levels :]
-        if self._contain_closest_title_levels == 0:
+        titles = titles[-contain_closest_title_levels:]
+        if contain_closest_title_levels == 0:
             titles = []
 
         if not content:
@@ -143,20 +156,23 @@ class HtmlExtractor(BaseExtractor):
             if not title:
                 continue
 
-            if self._title_convert_to_markdown:
+            if title_convert_to_markdown:
                 title = HtmlExtractor.convert_to_markdown(tag, title)
 
             trans_content += f"{title}\n"
         trans_content += content
         return trans_content
 
-    def trans_meta_titles(self, titles: list[tuple[str, str]]):
+    @staticmethod
+    def trans_meta_titles(
+        titles: list[tuple[str, str]], title_convert_to_markdown: bool
+    ):
         trans_titles = []
         for tag, title in titles:
             if not title:
                 continue
 
-            if self._title_convert_to_markdown:
+            if title_convert_to_markdown:
                 title = HtmlExtractor.convert_to_markdown(tag, title)
 
             trans_titles.append(title)
@@ -169,8 +185,13 @@ class HtmlExtractor(BaseExtractor):
             text = f.read()
 
             # preprocess
-            text, tables, title = self.preprocessing(
-                text, readability.Document(text).title()
+            text, tables, title = HtmlExtractor.preprocessing(
+                text,
+                readability.Document(text).title(),
+                self._use_first_header_as_title,
+                self._remove_hyperlinks,
+                self._fix_check,
+                self._seperate_tables,
             )
 
             html_doc = readability.Document(text)
@@ -182,10 +203,17 @@ class HtmlExtractor(BaseExtractor):
             for content, hierarchy_titles in zip(split_contents, titles):
                 docs.append(
                     Document(
-                        page_content=self.trans_titles_and_content(
-                            content, hierarchy_titles
+                        page_content=HtmlExtractor.trans_titles_and_content(
+                            content,
+                            hierarchy_titles,
+                            self._contain_closest_title_levels,
+                            self._title_convert_to_markdown,
                         ),
-                        metadata={"titles": self.trans_meta_titles(hierarchy_titles)},
+                        metadata={
+                            "titles": HtmlExtractor.trans_meta_titles(
+                                hierarchy_titles, self._title_convert_to_markdown
+                            )
+                        },
                     )
                 )
 
@@ -193,7 +221,11 @@ class HtmlExtractor(BaseExtractor):
                 docs.append(
                     Document(
                         page_content=table["table"],
-                        metadata={"titles": self.trans_meta_titles(table["titles"])},
+                        metadata={
+                            "titles": HtmlExtractor.trans_meta_titles(
+                                table["titles"], self._title_convert_to_markdown
+                            )
+                        },
                     )
                 )
 
