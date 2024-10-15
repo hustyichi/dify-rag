@@ -3,7 +3,7 @@ from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import html_helper, html_text, readability
 from dify_rag.models.document import Document
 
-from dify_rag.extractor.EMR_extractor import EMRExtractor
+from dify_rag.extractor.EMR_extractor import EMRExtractorFactory
 class HtmlExtractor(BaseExtractor):
     def __init__(
         self,
@@ -24,17 +24,18 @@ class HtmlExtractor(BaseExtractor):
         self._seperate_tables = seperate_tables
 
     def extract(self) -> list[Document]:
+        # check if the file is an EMR file
+        try:
+            EMRExtractorFactory.get_extractor(self._file_path)
+            return EMRExtractorFactory.get_extractor(self._file_path).extract()
+        except ValueError:
+            pass
+        
         with open(
             self._file_path, "r", encoding=utils.get_encoding(self._file_path)
         ) as f:
             text = f.read()
             
-            # check if the file is an EMR file
-            emr_extractor = EMRExtractor(self._file_path)
-            emr_type = emr_extractor.emr_type_recognize(text)
-            if emr_type:
-                return emr_extractor.extract(emr_type)
-
             # preprocess
             text, tables, title = html_helper.preprocessing(
                 text,
