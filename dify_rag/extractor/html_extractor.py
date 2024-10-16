@@ -1,9 +1,10 @@
 from dify_rag.extractor import utils
+from dify_rag.extractor.emr_extractor import EMRExtractorFactory
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import html_helper, html_text, readability
 from dify_rag.models.document import Document
 
-from dify_rag.extractor.EMR_extractor import EMRExtractorFactory
+
 class HtmlExtractor(BaseExtractor):
     def __init__(
         self,
@@ -25,12 +26,11 @@ class HtmlExtractor(BaseExtractor):
 
     def extract(self) -> list[Document]:
         # check if the file is an EMR file
-        try:
-            EMRExtractorFactory.get_extractor(self._file_path)
-            return EMRExtractorFactory.get_extractor(self._file_path).extract()
-        except ValueError:
-            pass
-        
+        extractor = EMRExtractorFactory.get_extractor(self._file_path)
+        if extractor:
+            return extractor.extract()
+
+        # if not EMR file, then extract as html file
         with open(
             self._file_path, "r", encoding=utils.get_encoding(self._file_path)
         ) as f:

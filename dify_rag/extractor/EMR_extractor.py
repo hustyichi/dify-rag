@@ -1,19 +1,19 @@
+from dify_rag.extractor.emr import (AdmissionRecordExtractor,
+                                    SurgeryConsentExtractor,
+                                    TalkRecordExtractor)
 from dify_rag.extractor.extractor_base import BaseExtractor
 
-from dify_rag.extractor.emr import (
-    TalkRecordExtractor,
-    AdmissionRecordExtractor,
-    SurgeryConsentExtractor
-)
 
 class EMRExtractorFactory:
+    EXTRACTORS = [
+        TalkRecordExtractor,
+        AdmissionRecordExtractor,
+        SurgeryConsentExtractor
+    ]
+
     @staticmethod
-    def get_extractor(file_path: str) -> BaseExtractor:
-        if TalkRecordExtractor.is_applicable(file_path):
-            return TalkRecordExtractor(file_path)
-        elif AdmissionRecordExtractor.is_applicable(file_path):
-            return AdmissionRecordExtractor(file_path)
-        elif SurgeryConsentExtractor.is_applicable(file_path):
-            return SurgeryConsentExtractor(file_path)
-        else:
-            raise ValueError(f"Unrecognized EMR types: {file_path}")
+    def get_extractor(file_path: str) -> BaseExtractor | None:
+        for extractor_class in EMRExtractorFactory.EXTRACTORS:
+            if extractor_class.is_applicable(file_path):
+                return extractor_class(file_path)
+        return None

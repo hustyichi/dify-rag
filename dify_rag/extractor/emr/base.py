@@ -1,13 +1,15 @@
-import re
+from abc import abstractmethod
+
 from bs4 import BeautifulSoup
 
-from abc import abstractmethod
 from dify_rag.extractor import utils
+from dify_rag.extractor.emr.constants import BaseEMRConfig
+from dify_rag.extractor.emr.emr_helper import find_element
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import html_helper, html_text, readability
 from dify_rag.models.document import Document
-from .emr_helper import find_element
-from .constants import BaseEMRConfig
+
+
 class BaseEMRExtractor(BaseExtractor):
     """Interface for extract EMR files."""
         
@@ -50,14 +52,14 @@ class BaseHtmlEMRExtractor(BaseEMRExtractor):
             text = f.read()
             
             # preprocess
-            text, tables, title = html_helper.preprocessing(
-                        content=text,
-                        title=readability.Document(text).title(),
-                        use_first_header_as_title=False,
-                        remove_hyperlinks=True,
-                        fix_check=True,
-                        seperate_tables=True,
-                        )
+            text, tables, _ = html_helper.preprocessing(
+                content=text,
+                title=readability.Document(text).title(),
+                use_first_header_as_title=False,
+                remove_hyperlinks=True,
+                fix_check=True,
+                seperate_tables=True,
+            )
             
             html_doc = readability.Document(text)
             content, split_contents, titles = html_text.extract_text(

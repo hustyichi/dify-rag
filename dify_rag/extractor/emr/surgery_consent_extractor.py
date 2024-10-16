@@ -1,12 +1,10 @@
-from typing import List
-from bs4 import BeautifulSoup
-import re
-
-from .base import BaseHtmlEMRExtractor
-from .emr_helper import find_element, extract_metadata
-from .constants import SurgeryConsentConfig, BaseEMRConfig
-from .emr_helper import init_metadata, extract_metadata, extract_fields
+from dify_rag.extractor.emr.base import BaseHtmlEMRExtractor
+from dify_rag.extractor.emr.constants import (BaseEMRConfig,
+                                              SurgeryConsentConfig)
+from dify_rag.extractor.emr.emr_helper import (extract_fields,
+                                               extract_metadata, init_metadata)
 from dify_rag.models.document import Document
+
 
 class SurgeryConsentExtractor(BaseHtmlEMRExtractor):
     @classmethod
