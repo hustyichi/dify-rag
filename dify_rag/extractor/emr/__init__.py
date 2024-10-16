@@ -1,8 +1,8 @@
+from .admission_record_extractor import AdmissionRecordExtractor
 from .base import BaseEMRExtractor, BaseHtmlEMRExtractor
 from .constants import BaseEMRConfig
-from .talk_record_extractor import TalkRecordExtractor
-from .admission_record_extractor import AdmissionRecordExtractor
 from .surgery_consent_extractor import SurgeryConsentExtractor
+from .talk_record_extractor import TalkRecordExtractor
 
 __all__ = [
     "BaseEMRConfig",
