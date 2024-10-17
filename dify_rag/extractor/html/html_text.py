@@ -58,13 +58,6 @@ DOUBLE_NEWLINE_TAGS = frozenset(
     ]
 )
 
-SPLIT_TAGS = [
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-]
-
 cleaner = Cleaner(
     scripts=True,
     javascript=False,  # onclick attributes are fine
@@ -126,7 +119,7 @@ def etree_to_text(
     guess_layout=True,
     newline_tags=NEWLINE_TAGS,
     double_newline_tags=DOUBLE_NEWLINE_TAGS,
-    split_tags=SPLIT_TAGS,
+    split_tags=constants.SPLIT_TAGS,
     title=None,
 ):
     """
@@ -323,7 +316,7 @@ def extract_text(
     guess_layout=True,
     newline_tags=NEWLINE_TAGS,
     double_newline_tags=DOUBLE_NEWLINE_TAGS,
-    split_tags=SPLIT_TAGS,
+    split_tags=constants.SPLIT_TAGS,
     title=None,
 ):
     """

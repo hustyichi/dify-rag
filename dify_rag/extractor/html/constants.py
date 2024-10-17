@@ -10,3 +10,10 @@ TAG_HIERARCHY = {
     "h5": 2,
     "h6": 1,
 }
+
+SPLIT_TAGS = [
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+]
