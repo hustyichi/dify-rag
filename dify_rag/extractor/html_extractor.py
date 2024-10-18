@@ -1,4 +1,5 @@
 from dify_rag.extractor import utils
+from dify_rag.extractor.emr_extractor import EMRExtractorFactory
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import constants, html_helper, html_text, readability
 from dify_rag.models.document import Document
@@ -26,11 +27,17 @@ class HtmlExtractor(BaseExtractor):
         self._split_tags = split_tags
 
     def extract(self) -> list[Document]:
+        # check if the file is an EMR file
+        extractor = EMRExtractorFactory.get_extractor(self._file_path)
+        if extractor:
+            return extractor.extract()
+
+        # if not EMR file, then extract as html file
         with open(
             self._file_path, "r", encoding=utils.get_encoding(self._file_path)
         ) as f:
             text = f.read()
-
+            
             # preprocess
             text, tables, title = html_helper.preprocessing(
                 text,
