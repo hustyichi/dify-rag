@@ -22,7 +22,7 @@ class AdmissionRecordExtractor(BaseHtmlEMRExtractor):
         metadata.update(extract_metadata(docs))
         metadata.update(extract_fields(docs[0].page_content, AdmissionRecordConfig))
         metadata.update(self._extract_diagnosis(docs, AdmissionRecordConfig))
-        
+        print(content)
         content = self._extract_content(metadata, AdmissionRecordConfig)
         
         return [Document(page_content=content, metadata=metadata)]
@@ -41,6 +41,11 @@ class AdmissionRecordExtractor(BaseHtmlEMRExtractor):
                 revised_diagnosis_match = re.search(config.REVISED_DIAGNOSIS_PATTERN, content, re.DOTALL)
                 if revised_diagnosis_match:
                     metadata[config.REVISED_DIAGNOSIS_KEY] = re.sub(config.DIAGNOSIS_CLEAN_PATTERN, '', revised_diagnosis_match.group(1).strip())
+                
+                
+                supplementary_diagnosis_match = re.search(config.SUPPLEMENTARY_DIAGNOSIS_PATTERN, content, re.DOTALL)
+                if supplementary_diagnosis_match:
+                    metadata[config.SUPPLEMENTARY_DIAGNOSIS_KEY] = re.sub(config.DIAGNOSIS_CLEAN_PATTERN, '', supplementary_diagnosis_match.group(1).strip())
                 
                 if metadata:
                     break
