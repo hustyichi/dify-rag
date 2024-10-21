@@ -36,7 +36,9 @@ class TalkRecordExtractor(BaseHtmlEMRExtractor):
     def _extract_content(meta: dict, config: BaseEMRConfig) -> str:
         content = f"## {config.RECORD_TYPE}\n\n"
         
-        content += f"{meta[config.RECORD_TYPE]}\n\n"
+        for item in config.TOC_ITEMS:
+            if item in meta:
+                content += f"{meta[item]}\n\n"
         
         return content
         

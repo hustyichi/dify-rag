@@ -42,6 +42,11 @@ class AdmissionRecordExtractor(BaseHtmlEMRExtractor):
                 if revised_diagnosis_match:
                     metadata[config.REVISED_DIAGNOSIS_KEY] = re.sub(config.DIAGNOSIS_CLEAN_PATTERN, '', revised_diagnosis_match.group(1).strip())
                 
+                
+                supplementary_diagnosis_match = re.search(config.SUPPLEMENTARY_DIAGNOSIS_PATTERN, content, re.DOTALL)
+                if supplementary_diagnosis_match:
+                    metadata[config.SUPPLEMENTARY_DIAGNOSIS_KEY] = re.sub(config.DIAGNOSIS_CLEAN_PATTERN, '', supplementary_diagnosis_match.group(1).strip())
+                
                 if metadata:
                     break
         

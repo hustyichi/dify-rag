@@ -39,7 +39,7 @@ class TalkRecordConfig(BaseEMRConfig):
         }
     ]
     BASIC_FIELDS = BASIC_FIELDS
-    TALK_RECORD_PATTERN = r'谈话记录 \|  \|.*?\| \[(.*?)\] \|'
+    TALK_RECORD_PATTERN = r'谈话记录.*?\| \[(.*?)\] \|'
     EXTRACT_FIELDS = []
     TOC_ITEMS = [
         "谈话记录"
@@ -64,10 +64,12 @@ class AdmissionRecordConfig(BaseEMRConfig):
     ]
     BASIC_FIELDS = BASIC_FIELDS
     DIAGNOSIS_START = "| 初步诊断"
-    INITIAL_DIAGNOSIS_PATTERN = r'\| 初步诊断： \|  \|.*?\| \[(.*?)\] \|'
+    INITIAL_DIAGNOSIS_PATTERN = r'\| 初步诊断：.*?\| \[(.*?)\] \|'
     INITIAL_DIAGNOSIS_KEY = "初步诊断"
     REVISED_DIAGNOSIS_PATTERN = r'修正诊断：([\d\.、、\w\W]+?)(?:医师签名|签名时间|\]|$)'
     REVISED_DIAGNOSIS_KEY = "修正诊断"
+    SUPPLEMENTARY_DIAGNOSIS_PATTERN = r'补充诊断：([\d\.、、\w\W]+?)(?:医师签名|签名时间|\]|$)'
+    SUPPLEMENTARY_DIAGNOSIS_KEY = "补充诊断"
     DIAGNOSIS_CLEAN_PATTERN = r'[^\u4e00-\u9fa5\d\.、]+'
     EXTRACT_FIELDS = [
         "主诉",
@@ -91,6 +93,7 @@ class AdmissionRecordConfig(BaseEMRConfig):
         "阳性体格检查",
         "阳性辅助检查结果",
         "初步诊断",
+        "补充诊断",
         "修正诊断",
         "诊疗方案"
     ]
@@ -131,8 +134,8 @@ class SurgeryConsentConfig(BaseEMRConfig):
             "手术指征",
             "手术禁忌症",
             "术前准备",
-            "术中、术后可能出现的各种情况、意外、风险及并发症",
-            "针对上述情况，医师根据医疗规范采取在术前、术中、术后预防及治疗措施"
+            # "术中、术后可能出现的各种情况、意外、风险及并发症",
+            # "针对上述情况，医师根据医疗规范采取在术前、术中、术后预防及治疗措施"
         ]
 
 EMR_CONFIGS = {
