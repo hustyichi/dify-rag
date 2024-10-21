@@ -22,7 +22,7 @@ class AdmissionRecordExtractor(BaseHtmlEMRExtractor):
         metadata.update(extract_metadata(docs))
         metadata.update(extract_fields(docs[0].page_content, AdmissionRecordConfig))
         metadata.update(self._extract_diagnosis(docs, AdmissionRecordConfig))
-        print(content)
+        
         content = self._extract_content(metadata, AdmissionRecordConfig)
         
         return [Document(page_content=content, metadata=metadata)]
