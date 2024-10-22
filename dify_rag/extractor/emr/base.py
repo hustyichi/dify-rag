@@ -99,7 +99,13 @@ class BaseHtmlEMRExtractor(BaseEMRExtractor):
                 )
         
         content = "\n".join([doc.page_content for doc in docs])
-        return self.extract_emr(docs, content)
+        
+        docs = self.extract_emr(docs, content)
+        docs = [Document(page_content=doc.page_content,
+                         metadata={"emr_metadata": doc.metadata})
+                for doc in docs]
+        
+        return docs
     
     @abstractmethod
     def extract_emr(self, docs: list[Document], content: str) -> list[Document]:
