@@ -19,8 +19,7 @@ def find_element(soup: BeautifulSoup, required_element: dict) -> Tag | None:
 
 def init_metadata(config: BaseEMRConfig) -> dict:
     metadata = {
-        "type": config.RECORD_TYPE,
-        **{field: "" for field in config.BASIC_FIELDS}
+        "type": config.EMR_TYPE,
     }
     return metadata
 
@@ -47,3 +46,35 @@ def extract_fields(content: str, config: BaseEMRConfig) -> dict:
                 break  # once match the field, break the inner loop
     
     return metadata
+
+def init_basic_metadata(metadata: dict, config: BaseEMRConfig) -> dict:
+    basic_metadata = config.BASIC_METADATA
+    for key, value in config.BASIC_FIELDS_MAPPING.items():
+        basic_metadata[value] = metadata[key]
+
+    return basic_metadata
+
+def get_priority_diagnosis(metadata: dict, config: BaseEMRConfig) -> str:
+    if metadata.get(config.REVISED_DIAGNOSIS_KEY):
+        return metadata[config.REVISED_DIAGNOSIS_KEY]
+    if metadata.get(config.INITIAL_DIAGNOSIS_KEY) and \
+        metadata.get(config.SUPPLEMENTARY_DIAGNOSIS_KEY):
+        return metadata[config.INITIAL_DIAGNOSIS_KEY] + "，" + \
+            metadata[config.SUPPLEMENTARY_DIAGNOSIS_KEY]
+    if metadata.get(config.INITIAL_DIAGNOSIS_KEY):
+        return metadata[config.INITIAL_DIAGNOSIS_KEY]
+    return ""
+
+def get_priority_treatment(metadata: dict, config: BaseEMRConfig) -> str:
+    if metadata.get(config.TREATMENT_KEY):
+        return metadata[config.TREATMENT_KEY]
+    if metadata.get(config.PROCEDURE_KEY):
+        return metadata[config.PROCEDURE_KEY]
+    return ""
+
+def get_basic_metadata(metadata: dict, config: BaseEMRConfig) -> dict:
+    basic_metadata = init_basic_metadata(metadata, config)
+    basic_metadata[config.EMR_TYPE_KEY] = config.EMR_TYPE
+    basic_metadata[config.DIAGNOSIS_KEY] = get_priority_diagnosis(metadata, config)
+    basic_metadata[config.TREATMENT_KEY] = get_priority_treatment(metadata, config)
+    return basic_metadata

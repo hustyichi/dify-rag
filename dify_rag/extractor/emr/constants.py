@@ -1,28 +1,57 @@
-TALK_RECORD = "谈话记录"
-ADMISSION_RECORD = "入院记录"
-SURGERY_CONSENT = "手术知情同意书"
-BASIC_FIELDS = [
-    "性别",
-    "年龄",
-    "科室",
-    "床号",
-    "病案号",
-]
+from abc import ABC
+from enum import Enum
+from typing import ClassVar, Dict, List
 
-class BaseEMRConfig:
-    RECORD_TYPE: str
-    HEADERS: list[str]
-    REQUIRED_ELEMENTS: list[dict[str, str]]
-    BASIC_FIELDS: list[str]
-    EXTRACT_FIELDS: list[str]
-    TOC_ITEMS: list[str]
+
+class EMRType(Enum):
+    TALK_RECORD = "谈话记录"
+    ADMISSION_RECORD = "入院记录"
+    SURGERY_CONSENT = "手术知情同意书"
+
+class BaseEMRConfig(ABC):
+    EMR_TYPE: ClassVar[EMRType]
+    HEADERS: ClassVar[List[str]]
+    REQUIRED_ELEMENTS: ClassVar[List[Dict[str, str]]]
+    BASIC_FIELDS: ClassVar[List[str]]
+    EXTRACT_FIELDS: ClassVar[List[str]]
+    TOC_ITEMS: ClassVar[List[str]]
+    
+    EMR_TYPE_KEY: ClassVar[str] = "emr_type"
+    GENDER_KEY: ClassVar[str] = "gender"
+    AGE_KEY: ClassVar[str] = "age"
+    DEPARTMENT_KEY: ClassVar[str] = "department"
+    MEDICAL_RECORD_NUMBER_KEY: ClassVar[str] = "medical_record_number"
+    DIAGNOSIS_KEY: ClassVar[str] = "diagnosis"
+    TREATMENT_KEY: ClassVar[str] = "treatment"
+    INITIAL_DIAGNOSIS_KEY: ClassVar[str] = "初步诊断"
+    SUPPLEMENTARY_DIAGNOSIS_KEY: ClassVar[str] = "补充诊断"
+    REVISED_DIAGNOSIS_KEY: ClassVar[str] = "修正诊断"
+    TREATMENT_PLAN_KEY: ClassVar[str] = "诊疗方案"
+    PROCEDURE_KEY: ClassVar[str] = "拟实施手术名称"
+    
+    BASIC_FIELDS_MAPPING: ClassVar[Dict[str, str]] = {
+        "性别": GENDER_KEY,
+        "年龄": AGE_KEY,
+        "科室": DEPARTMENT_KEY,
+        "病案号": MEDICAL_RECORD_NUMBER_KEY,
+    }
+    
+    BASIC_METADATA: Dict[str, str] = {
+        EMR_TYPE_KEY: "",
+        GENDER_KEY: "",
+        AGE_KEY: "",
+        DEPARTMENT_KEY: "",
+        MEDICAL_RECORD_NUMBER_KEY: "",
+        DIAGNOSIS_KEY: "",
+        TREATMENT_KEY: "",
+    }
 
     @classmethod
     def is_applicable(cls, file_path: str) -> bool:
         return any(header in file_path for header in cls.HEADERS)
 
 class TalkRecordConfig(BaseEMRConfig):
-    RECORD_TYPE = "谈话记录"
+    EMR_TYPE = "谈话记录"
     HEADERS = ["谈话记录]"]
     REQUIRED_ELEMENTS = [
         {
@@ -38,7 +67,6 @@ class TalkRecordConfig(BaseEMRConfig):
             "keyword": "谈话记录"
         }
     ]
-    BASIC_FIELDS = BASIC_FIELDS
     TALK_RECORD_PATTERN = r'谈话记录.*?\| \[(.*?)\] \|'
     EXTRACT_FIELDS = []
     TOC_ITEMS = [
@@ -46,7 +74,7 @@ class TalkRecordConfig(BaseEMRConfig):
     ]
 
 class AdmissionRecordConfig(BaseEMRConfig):
-    RECORD_TYPE = "入院记录"
+    EMR_TYPE = "入院记录"
     HEADERS = ["入院记录]", "入出院记录]"]
     REQUIRED_ELEMENTS = [
         {
@@ -62,7 +90,6 @@ class AdmissionRecordConfig(BaseEMRConfig):
             "keyword": "现病史"
         }
     ]
-    BASIC_FIELDS = BASIC_FIELDS
     DIAGNOSIS_START = "| 初步诊断"
     INITIAL_DIAGNOSIS_PATTERN = r'\| 初步诊断：.*?\| \[(.*?)\] \|'
     INITIAL_DIAGNOSIS_KEY = "初步诊断"
@@ -99,7 +126,7 @@ class AdmissionRecordConfig(BaseEMRConfig):
     ]
 
 class SurgeryConsentConfig(BaseEMRConfig):
-    RECORD_TYPE = "手术知情同意书"
+    EMR_TYPE = "手术知情同意书"
     HEADERS = ["手术知情同意书]"]
     REQUIRED_ELEMENTS = [
         {
@@ -121,7 +148,6 @@ class SurgeryConsentConfig(BaseEMRConfig):
             "keyword": "拟实施手术名称"
         }
     ]
-    BASIC_FIELDS = BASIC_FIELDS
     EXTRACT_FIELDS = [
         "术中、术后可能出现的各种情况、意外、风险及并发症",
         "针对上述情况，医师根据医疗规范采取在术前、术中、术后预防及治疗措施",
@@ -138,8 +164,16 @@ class SurgeryConsentConfig(BaseEMRConfig):
             # "针对上述情况，医师根据医疗规范采取在术前、术中、术后预防及治疗措施"
         ]
 
-EMR_CONFIGS = {
-    TalkRecordConfig.RECORD_TYPE: TalkRecordConfig,
-    AdmissionRecordConfig.RECORD_TYPE: AdmissionRecordConfig,
-    SurgeryConsentConfig.RECORD_TYPE: SurgeryConsentConfig
-}
+class EMRConfigFactory:
+    @staticmethod
+    def create_config(emr_type: EMRType) -> BaseEMRConfig:
+        config_map = {
+            EMRType.TALK_RECORD: TalkRecordConfig,
+            EMRType.ADMISSION_RECORD: AdmissionRecordConfig,
+            EMRType.SURGERY_CONSENT: SurgeryConsentConfig,
+        }
+        config_class = config_map.get(emr_type)
+        if config_class is None:
+            raise ValueError(f"Unsupported record type: {emr_type}")
+        config = config_class()
+        return config
