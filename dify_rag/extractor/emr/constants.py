@@ -45,6 +45,14 @@ class BaseEMRConfig(ABC):
         DIAGNOSIS_KEY: "",
         TREATMENT_KEY: "",
     }
+    
+    BASIC_INFO_TITLE = "基本信息"
+    BASIC_INFO_TOC = [
+        "性别",
+        "年龄",
+        "科室",
+        "病案号",
+    ]
 
     @classmethod
     def is_applicable(cls, file_path: str) -> bool:

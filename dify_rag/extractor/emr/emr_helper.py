@@ -54,6 +54,14 @@ def init_basic_metadata(metadata: dict, config: BaseEMRConfig) -> dict:
 
     return basic_metadata
 
+def extract_basic_info_content(metadata: dict, config: BaseEMRConfig) -> str:
+    basic_info_content = f"### {config.BASIC_INFO_TITLE}\n\n"
+    for item in config.BASIC_INFO_TOC:
+        if item in metadata:
+            basic_info_content += f"{item}：{metadata[item]} "
+    basic_info_content += "\n\n"
+    return basic_info_content
+
 def get_priority_diagnosis(metadata: dict, config: BaseEMRConfig) -> str:
     if metadata.get(config.REVISED_DIAGNOSIS_KEY):
         return metadata[config.REVISED_DIAGNOSIS_KEY]

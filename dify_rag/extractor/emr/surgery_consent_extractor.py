@@ -3,6 +3,7 @@ from dify_rag.extractor.emr.constants import (BaseEMRConfig,
                                               SurgeryConsentConfig)
 from dify_rag.extractor.emr.emr_helper import (extract_fields,
                                                extract_metadata,
+                                               extract_basic_info_content,
                                                get_basic_metadata,
                                                init_metadata)
 from dify_rag.models.document import Document
@@ -30,6 +31,8 @@ class SurgeryConsentExtractor(BaseHtmlEMRExtractor):
     @staticmethod
     def _extract_content(metadata: dict, config: BaseEMRConfig) -> str:
         content = f"## {config.EMR_TYPE}\n\n"
+        
+        content += extract_basic_info_content(metadata, config)
         
         for item in config.TOC_ITEMS:
             if item in metadata:

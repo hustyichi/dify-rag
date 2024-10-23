@@ -3,6 +3,7 @@ import re
 from dify_rag.extractor.emr.base import BaseHtmlEMRExtractor
 from dify_rag.extractor.emr.constants import BaseEMRConfig, TalkRecordConfig
 from dify_rag.extractor.emr.emr_helper import (extract_metadata,
+                                               extract_basic_info_content,
                                                get_basic_metadata,
                                                init_metadata)
 from dify_rag.models.document import Document
@@ -36,12 +37,14 @@ class TalkRecordExtractor(BaseHtmlEMRExtractor):
             return {}
     
     @staticmethod
-    def _extract_content(meta: dict, config: BaseEMRConfig) -> str:
+    def _extract_content(metadata: dict, config: BaseEMRConfig) -> str:
         content = f"## {config.EMR_TYPE}\n\n"
         
+        content += extract_basic_info_content(metadata, config)
+        
         for item in config.TOC_ITEMS:
-            if item in meta:
-                content += f"{meta[item]}\n\n"
+            if item in metadata:
+                content += f"{metadata[item]}\n\n"
         
         return content
         
