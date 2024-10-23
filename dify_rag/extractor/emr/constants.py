@@ -174,6 +174,6 @@ class EMRConfigFactory:
         }
         config_class = config_map.get(emr_type)
         if config_class is None:
-            raise ValueError(f"Unsupported record type: {emr_type}")
+            raise ValueError(f"Unsupported EMR type: {emr_type}")
         config = config_class()
         return config
