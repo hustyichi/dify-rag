@@ -75,8 +75,8 @@ def get_priority_diagnosis(metadata: dict) -> str:
     return ""
 
 def get_priority_treatment(metadata: dict) -> str:
-    if metadata.get(EMRConstants.TREATMENT_KEY):
-        return metadata[EMRConstants.TREATMENT_KEY]
+    if metadata.get(EMRConstants.TREATMENT_PLAN_KEY):
+        return metadata[EMRConstants.TREATMENT_PLAN_KEY]
     if metadata.get(EMRConstants.PROCEDURE_KEY):
         return metadata[EMRConstants.PROCEDURE_KEY]
     return ""
