@@ -8,33 +8,34 @@ class EMRType(Enum):
     ADMISSION_RECORD = "入院记录"
     SURGERY_CONSENT = "手术知情同意书"
 
-class BaseEMRConfig(ABC):
-    EMR_TYPE: ClassVar[EMRType]
-    HEADERS: ClassVar[List[str]]
-    REQUIRED_ELEMENTS: ClassVar[List[Dict[str, str]]]
-    BASIC_FIELDS: ClassVar[List[str]]
-    EXTRACT_FIELDS: ClassVar[List[str]]
-    TOC_ITEMS: ClassVar[List[str]]
+class EMRConstants:
+    EMR_TYPE_KEY = "emr_type"
+    GENDER_KEY = "gender"
+    AGE_KEY = "age"
+    DEPARTMENT_KEY = "department"
+    MEDICAL_RECORD_NUMBER_KEY = "medical_record_number"
+    DIAGNOSIS_KEY = "diagnosis"
+    TREATMENT_KEY = "treatment"
+    INITIAL_DIAGNOSIS_KEY = "初步诊断"
+    SUPPLEMENTARY_DIAGNOSIS_KEY = "补充诊断"
+    REVISED_DIAGNOSIS_KEY = "修正诊断"
+    TREATMENT_PLAN_KEY = "诊疗方案"
+    PROCEDURE_KEY = "拟实施手术名称"
     
-    EMR_TYPE_KEY: ClassVar[str] = "emr_type"
-    GENDER_KEY: ClassVar[str] = "gender"
-    AGE_KEY: ClassVar[str] = "age"
-    DEPARTMENT_KEY: ClassVar[str] = "department"
-    MEDICAL_RECORD_NUMBER_KEY: ClassVar[str] = "medical_record_number"
-    DIAGNOSIS_KEY: ClassVar[str] = "diagnosis"
-    TREATMENT_KEY: ClassVar[str] = "treatment"
-    INITIAL_DIAGNOSIS_KEY: ClassVar[str] = "初步诊断"
-    SUPPLEMENTARY_DIAGNOSIS_KEY: ClassVar[str] = "补充诊断"
-    REVISED_DIAGNOSIS_KEY: ClassVar[str] = "修正诊断"
-    TREATMENT_PLAN_KEY: ClassVar[str] = "诊疗方案"
-    PROCEDURE_KEY: ClassVar[str] = "拟实施手术名称"
-    
-    BASIC_FIELDS_MAPPING: ClassVar[Dict[str, str]] = {
+    BASIC_FIELDS_MAPPING = {
         "性别": GENDER_KEY,
         "年龄": AGE_KEY,
         "科室": DEPARTMENT_KEY,
         "病案号": MEDICAL_RECORD_NUMBER_KEY,
     }
+    
+    BASIC_INFO_TITLE = "基本信息"
+    BASIC_INFO_TOC = [
+        "性别",
+        "年龄",
+        "科室",
+        "病案号",
+    ]
     
     BASIC_METADATA: Dict[str, str] = {
         EMR_TYPE_KEY: "",
@@ -45,14 +46,14 @@ class BaseEMRConfig(ABC):
         DIAGNOSIS_KEY: "",
         TREATMENT_KEY: "",
     }
-    
-    BASIC_INFO_TITLE = "基本信息"
-    BASIC_INFO_TOC = [
-        "性别",
-        "年龄",
-        "科室",
-        "病案号",
-    ]
+
+class BaseEMRConfig(ABC):
+    EMR_TYPE: ClassVar[EMRType]
+    HEADERS: ClassVar[List[str]]
+    REQUIRED_ELEMENTS: ClassVar[List[Dict[str, str]]]
+    BASIC_FIELDS: ClassVar[List[str]]
+    EXTRACT_FIELDS: ClassVar[List[str]]
+    TOC_ITEMS: ClassVar[List[str]]
 
     @classmethod
     def is_applicable(cls, file_path: str) -> bool:
