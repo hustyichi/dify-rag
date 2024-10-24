@@ -19,7 +19,7 @@ class BaseEMRExtractor(BaseExtractor):
         raise NotImplementedError
     
 class BaseHtmlEMRExtractor(BaseEMRExtractor):
-    def __init__(self, file_path: str, include_metadata: bool = False):
+    def __init__(self, file_path: str, include_metadata: bool = True):
         self._file_path = file_path
         self._docs: list[Document] = []
         self._content: str = ""
@@ -102,9 +102,6 @@ class BaseHtmlEMRExtractor(BaseEMRExtractor):
         content = "\n".join([doc.page_content for doc in docs])
         
         docs = self.extract_emr(docs, content)
-        docs = [Document(page_content=doc.page_content,
-                         metadata={"emr_metadata": doc.metadata})
-                for doc in docs]
         
         if not self._include_metadata:
             docs = [Document(page_content=doc.page_content) for doc in docs]

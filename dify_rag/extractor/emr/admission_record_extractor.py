@@ -4,7 +4,10 @@ from dify_rag.extractor.emr.base import BaseHtmlEMRExtractor
 from dify_rag.extractor.emr.constants import (AdmissionRecordConfig,
                                               BaseEMRConfig)
 from dify_rag.extractor.emr.emr_helper import (extract_fields,
-                                               extract_metadata, init_metadata)
+                                               extract_metadata,
+                                               extract_basic_info_content,
+                                               get_basic_metadata,
+                                               init_metadata)
 from dify_rag.models.document import Document
 
 
@@ -25,7 +28,9 @@ class AdmissionRecordExtractor(BaseHtmlEMRExtractor):
         
         content = self._extract_content(metadata, AdmissionRecordConfig)
         
-        return [Document(page_content=content, metadata=metadata)]
+        basic_metadata = get_basic_metadata(metadata, AdmissionRecordConfig)
+        
+        return [Document(page_content=content, metadata=basic_metadata)]
     
     @staticmethod
     def _extract_diagnosis(docs: list[Document], config: BaseEMRConfig) -> dict:
@@ -54,7 +59,9 @@ class AdmissionRecordExtractor(BaseHtmlEMRExtractor):
     
     @staticmethod
     def _extract_content(metadata: dict, config: BaseEMRConfig) -> str:
-        content = f"## {config.RECORD_TYPE}\n\n"
+        content = f"## {config.EMR_TYPE}\n\n"
+        
+        content += extract_basic_info_content(metadata)
         
         for item in config.TOC_ITEMS:
             if item in metadata:
