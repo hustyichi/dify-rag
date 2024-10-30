@@ -76,7 +76,7 @@ class TalkRecordConfig(BaseEMRConfig):
             "keyword": "谈话记录"
         }
     ]
-    TALK_RECORD_PATTERN = r'谈话记录.*?\| \[(.*?)\] \|'
+    TALK_RECORD_PATTERN = r'谈话记录.*?- \|\n\| \[?(.*?)\]? \|'
     EXTRACT_FIELDS = []
     TOC_ITEMS = [
         "谈话记录"
