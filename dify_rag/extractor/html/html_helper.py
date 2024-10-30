@@ -68,6 +68,7 @@ def preprocessing(
     header = soup.find(["h1", "h2"])
     if header and use_first_header_as_title:
         title = header.get_text().strip()
+        header.extract()
 
     # clean header contents
     for tag in soup.find_all(re.compile("^h[1-6]$")):
