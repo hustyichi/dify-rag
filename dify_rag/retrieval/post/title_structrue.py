@@ -44,6 +44,7 @@ class TitleStructurePost(RetrievalPostBase):
                 query_metadata_map[key] = {"metadata": {}, "content": ""}
             query_metadata_map[key]["metadata"] = doc.metadata
             query_metadata_map[key]["content"] = content
+            query_metadata_map[key]["provider"] = doc.provider
 
         for doc in docs:
             title = content = doc.page_content
@@ -74,7 +75,9 @@ class TitleStructurePost(RetrievalPostBase):
                         new_content = self.splice_contents(contents[left], new_content)
 
             doc = Document(
-                page_content=new_content, metadata=query_metadata_map[key]["metadata"]
+                page_content=new_content,
+                metadata=query_metadata_map[key]["metadata"],
+                provider=query_metadata_map[key]["provider"],
             )
             final_documents_list.append(doc)
 
