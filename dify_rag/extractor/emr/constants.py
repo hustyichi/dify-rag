@@ -47,6 +47,8 @@ class EMRConstants:
         TREATMENT_KEY: "",
     }
 
+    MIN_CONTENT_LENGTH = 100
+
 class BaseEMRConfig(ABC):
     EMR_TYPE: ClassVar[EMRType]
     HEADERS: ClassVar[List[str]]
