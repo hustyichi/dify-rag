@@ -103,13 +103,11 @@ class BaseHtmlEMRExtractor(BaseEMRExtractor):
         
         docs = self.extract_emr(docs, content)
         
-        docs = [doc for doc in docs if len(doc.page_content) > EMRConstants.MIN_CONTENT_LENGTH]
-        
-        if len(docs) == 0:
-            return []
-        
         if not self._include_metadata:
             docs = [Document(page_content=doc.page_content) for doc in docs]
+        
+        if len(docs) == 1 and len(docs[0].page_content) < EMRConstants.MIN_CONTENT_LENGTH:
+            return []
         
         return docs
     
