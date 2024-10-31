@@ -3,7 +3,7 @@ from abc import abstractmethod
 from bs4 import BeautifulSoup
 
 from dify_rag.extractor import utils
-from dify_rag.extractor.emr.constants import BaseEMRConfig
+from dify_rag.extractor.emr.constants import BaseEMRConfig, EMRConstants
 from dify_rag.extractor.emr.emr_helper import find_element
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import html_helper, html_text, readability
@@ -102,6 +102,11 @@ class BaseHtmlEMRExtractor(BaseEMRExtractor):
         content = "\n".join([doc.page_content for doc in docs])
         
         docs = self.extract_emr(docs, content)
+        
+        docs = [doc for doc in docs if len(doc.page_content) > EMRConstants.MIN_CONTENT_LENGTH]
+        
+        if len(docs) == 0:
+            return []
         
         if not self._include_metadata:
             docs = [Document(page_content=doc.page_content) for doc in docs]
