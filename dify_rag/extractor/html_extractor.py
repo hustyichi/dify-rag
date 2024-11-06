@@ -2,6 +2,7 @@ from dify_rag.extractor import utils
 from dify_rag.extractor.emr_extractor import EMRExtractorFactory
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import constants, html_helper, html_text, readability
+from dify_rag.models import constants as global_constants
 from dify_rag.models.document import Document
 
 
@@ -37,7 +38,7 @@ class HtmlExtractor(BaseExtractor):
             self._file_path, "r", encoding=utils.get_encoding(self._file_path)
         ) as f:
             text = f.read()
-            
+
             # preprocess
             text, tables, title = html_helper.preprocessing(
                 text,
@@ -69,7 +70,6 @@ class HtmlExtractor(BaseExtractor):
                             "titles": html_helper.trans_meta_titles(
                                 hierarchy_titles, self._title_convert_to_markdown
                             ),
-                            "content_type": "text",
                         },
                     )
                 )
@@ -82,7 +82,7 @@ class HtmlExtractor(BaseExtractor):
                             "titles": html_helper.trans_meta_titles(
                                 table["titles"], self._title_convert_to_markdown
                             ),
-                            "content_type": "table",
+                            "content_type": global_constants.ContentType.TABLE,
                         },
                     )
                 )
