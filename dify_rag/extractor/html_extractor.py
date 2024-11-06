@@ -68,7 +68,8 @@ class HtmlExtractor(BaseExtractor):
                         metadata={
                             "titles": html_helper.trans_meta_titles(
                                 hierarchy_titles, self._title_convert_to_markdown
-                            )
+                            ),
+                            "content_type": "text",
                         },
                     )
                 )
@@ -80,7 +81,8 @@ class HtmlExtractor(BaseExtractor):
                         metadata={
                             "titles": html_helper.trans_meta_titles(
                                 table["titles"], self._title_convert_to_markdown
-                            )
+                            ),
+                            "content_type": "table",
                         },
                     )
                 )
