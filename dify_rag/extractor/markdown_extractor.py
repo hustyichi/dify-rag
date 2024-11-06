@@ -4,6 +4,7 @@ from typing import Optional
 
 from dify_rag.extractor import utils
 from dify_rag.extractor.extractor_base import BaseExtractor
+from dify_rag.models import constants
 from dify_rag.models.document import Document
 
 
@@ -68,7 +69,12 @@ class MarkdownExtractor(BaseExtractor):
                 continue
 
             table = table.strip()
-            documents.append(Document(page_content=table))
+            documents.append(
+                Document(
+                    page_content=table,
+                    metadata={"content_type": constants.ContentType.TABLE},
+                )
+            )
 
         return documents
 
