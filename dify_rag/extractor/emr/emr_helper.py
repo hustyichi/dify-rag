@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 from bs4 import BeautifulSoup, Tag
 
@@ -6,7 +7,7 @@ from dify_rag.extractor.emr.constants import BaseEMRConfig, EMRConstants
 from dify_rag.models.document import Document
 
 
-def find_element(soup: BeautifulSoup, required_element: dict) -> Tag | None:
+def find_element(soup: BeautifulSoup, required_element: dict) -> Optional[Tag]:
     tag = required_element["tag"]
     data_name = required_element["data_name"]
     data_id = required_element["data_id"]
