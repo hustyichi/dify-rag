@@ -1,3 +1,5 @@
+from typing import Optional
+
 from dify_rag.extractor.emr import (AdmissionRecordExtractor,
                                     SurgeryConsentExtractor,
                                     TalkRecordExtractor)
@@ -12,7 +14,7 @@ class EMRExtractorFactory:
     ]
 
     @staticmethod
-    def get_extractor(file_path: str) -> BaseExtractor | None:
+    def get_extractor(file_path: str) -> Optional[BaseExtractor]:
         for extractor_class in EMRExtractorFactory.EXTRACTORS:
             if extractor_class.is_applicable(file_path):
                 return extractor_class(file_path)
