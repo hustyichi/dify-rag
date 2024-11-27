@@ -16,6 +16,7 @@ beautifulsoup4 = "^4.12.2"
 lxml-html-clean = "^0.2.0"
 chardet = "^5.1.0"
 requests = "^2.30.0"
+mammoth = "^1.8.0"
 
 [[tool.poetry.source]]
 name = "mirrors"
