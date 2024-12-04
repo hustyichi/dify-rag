@@ -13,7 +13,7 @@ from dify_rag.models.document import Document
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
-class EpubExtractor(BaseExtractor):
+class UnstructuredEpubExtractor(BaseExtractor):
     def __init__(
         self,
         file_path: str,

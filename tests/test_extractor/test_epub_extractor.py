@@ -1,10 +1,10 @@
-from dify_rag.extractor.epub_extractor import EpubExtractor
+from dify_rag.extractor.unstructured.unstructured_epub_extractor import UnstructuredEpubExtractor
 from tests.log import logger
 
 file_path = "tests/data/sample_test.epub"
 
 def test_epub_extractor():
-    extractor = EpubExtractor(file_path)
+    extractor = UnstructuredEpubExtractor(file_path)
     text_docs = extractor.extract()
 
     for d in text_docs:
