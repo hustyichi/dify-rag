@@ -235,8 +235,9 @@ def etree_to_text(
             and compare_html_tags(current_hierarchy_titles[-1][0], tag) <= 0
         ):
             current_hierarchy_titles.pop()
-
-        current_hierarchy_titles.append((tag.strip(), text.strip()))
+        
+        normalized_text = _normalize_whitespace(text)
+        current_hierarchy_titles.append((tag.strip(), normalized_text.strip()))
 
     def check_add_add_split_texts(tag=None, text=None):
         nonlocal split_texts
