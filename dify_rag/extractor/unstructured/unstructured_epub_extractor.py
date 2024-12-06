@@ -1,17 +1,15 @@
 import os
-import warnings
+import re
+import tempfile
 
 import ebooklib
 from bs4 import BeautifulSoup
 from ebooklib import epub
 
 from dify_rag.extractor.extractor_base import BaseExtractor
-from dify_rag.extractor.html import (constants, html_helper, html_text,
-                                     readability)
-from dify_rag.models import constants as global_constants
-from dify_rag.models.document import Document
-
-warnings.filterwarnings('ignore', category=FutureWarning)
+from dify_rag.extractor.html import constants
+from dify_rag.extractor.html_extractor import HtmlExtractor
+from dify_rag.extractor.unstructured.constants import EPUB_HTML_TEMPLATE
 
 class UnstructuredEpubExtractor(BaseExtractor):
     def __init__(
@@ -27,92 +25,82 @@ class UnstructuredEpubExtractor(BaseExtractor):
         prevent_duplicate_header: bool = True,
     ) -> None:
         self._file_path = file_path
-        self._remove_hyperlinks = remove_hyperlinks
-        self._fix_check = fix_check
-        self._contain_closest_title_levels = contain_closest_title_levels
-        self._title_convert_to_markdown = title_convert_to_markdown
-        self._use_first_header_as_title = use_first_header_as_title
-        self._seperate_tables = seperate_tables
-        self._split_tags = split_tags
-        self._prevent_duplicate_header = prevent_duplicate_header
+        self._html_extractor_params = {
+            'remove_hyperlinks': remove_hyperlinks,
+            'fix_check': fix_check,
+            'contain_closest_title_levels': contain_closest_title_levels,
+            'title_convert_to_markdown': title_convert_to_markdown,
+            'use_first_header_as_title': use_first_header_as_title,
+            'seperate_tables': seperate_tables,
+            'split_tags': split_tags,
+            'prevent_duplicate_header': prevent_duplicate_header,
+        }
 
-    def extract(self):
-        book = epub.read_epub(self._file_path, options={"ignore_ncx": True})
-        
+    def _get_book_title(self, book):
         title = book.get_metadata('DC', 'title')
         if title:
             book_title = title[0][0]
-        else:
-            book_title = os.path.splitext(os.path.basename(self._file_path))[0]
+            return re.sub(r'^#+', '', book_title)
+        return os.path.splitext(os.path.basename(self._file_path))[0]
 
-        docs = []
+    @staticmethod
+    def _process_soup_element(soup):
+        for element in soup.find_all():
+            if element.get('xmlns'):
+                del element['xmlns']
+            if element.get('xml:lang'):
+                del element['xml:lang']
+
+    @staticmethod
+    def _add_title_to_soup(soup, book_title):
+        title_tag = soup.find('title')
+        if title_tag:
+            title_tag.string = book_title
+            return
+            
+        head_tag = soup.find('head')
+        if not head_tag:
+            head_tag = soup.new_tag('head')
+            if soup.html:
+                soup.html.insert(0, head_tag)
+            else:
+                soup.append(head_tag)
+        head_tag.append(soup.new_tag('title', string=book_title))
+
+    def extract(self):
+        book = epub.read_epub(self._file_path)
+        book_title = self._get_book_title(book)
+        
+        texts = []
         for item in book.get_items():
             if item.get_type() == ebooklib.ITEM_DOCUMENT:
                 soup = BeautifulSoup(item.content, 'html.parser')
-                title_tag = soup.find('title')
-                if title_tag:
-                    title_tag.string = book_title
-                else:
-                    head_tag = soup.find('head')
-                    if head_tag:
-                        head_tag.append(soup.new_tag('title', string=book_title))
-                    else:
-                        head_tag = soup.new_tag('head')
-                        head_tag.append(soup.new_tag('title', string=book_title))
-                        if soup.html:
-                            soup.html.insert(0, head_tag)
-                        else:
-                            soup.append(head_tag)
-                text = str(soup)
-                
-                text, tables, title = html_helper.preprocessing(
-                    text,
-                    readability.Document(text).title(),
-                    self._use_first_header_as_title,
-                    self._remove_hyperlinks,
-                    self._fix_check,
-                    self._seperate_tables,
-                    self._prevent_duplicate_header,
-                )
+                self._process_soup_element(soup)
+                self._add_title_to_soup(soup, book_title)
 
-                html_doc = readability.Document(text)
-                content, split_contents, titles = html_text.extract_text(
-                    html_doc.summary(html_partial=True),
-                    title=title,
-                    split_tags=self._split_tags,
-                )
+                body = soup.find('body')
+                text = str(body.decode_contents()) if body else str(soup)
+                texts.append(text)
 
-                item_docs = []
-                for content, hierarchy_titles in zip(split_contents, titles):
-                    item_docs.append(
-                        Document(
-                            page_content=html_helper.trans_titles_and_content(
-                                content,
-                                hierarchy_titles,
-                                self._contain_closest_title_levels,
-                                self._title_convert_to_markdown,
-                            ),
-                            metadata={
-                                "titles": html_helper.trans_meta_titles(
-                                    hierarchy_titles, self._title_convert_to_markdown
-                                ),
-                            },
-                        )
-                    )
+        html_content = EPUB_HTML_TEMPLATE.format(
+            book_title=book_title,
+            content="".join(texts)
+            )
 
-                for table in tables:
-                    item_docs.append(
-                        Document(
-                            page_content=table["table"],
-                            metadata={
-                                "titles": html_helper.trans_meta_titles(
-                                    table["titles"], self._title_convert_to_markdown
-                                ),
-                                "content_type": global_constants.ContentType.TABLE,
-                            },
-                        )
-                    )
-                
-                docs.extend(item_docs)
+        original_name = os.path.splitext(os.path.basename(self._file_path))[0]
+        temp_dir = tempfile.gettempdir()
+        temp_html_path = os.path.join(temp_dir, f"{original_name}.html")
 
-        return docs
+        with open(temp_html_path, 'w', encoding='utf-8') as temp_html:
+            temp_html.write(html_content)
+
+        html_extractor = HtmlExtractor(
+            file_path=temp_html_path,
+            **self._html_extractor_params
+        )
+
+        documents = html_extractor.extract()
+
+        os.unlink(temp_html_path)
+
+        return documents
