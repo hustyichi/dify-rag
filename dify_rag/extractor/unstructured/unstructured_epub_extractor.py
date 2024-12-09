@@ -1,15 +1,13 @@
 import os
 import re
 import tempfile
-
-import ebooklib
-from bs4 import BeautifulSoup
-from ebooklib import epub
+import zipfile
 
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import constants
 from dify_rag.extractor.html_extractor import HtmlExtractor
 from dify_rag.extractor.unstructured.constants import EPUB_HTML_TEMPLATE
+from bs4 import BeautifulSoup
 
 class UnstructuredEpubExtractor(BaseExtractor):
     def __init__(
@@ -23,6 +21,7 @@ class UnstructuredEpubExtractor(BaseExtractor):
         seperate_tables: bool = True,
         split_tags: list[str] = constants.SPLIT_TAGS,
         prevent_duplicate_header: bool = True,
+        use_summary: bool = False,
     ) -> None:
         self._file_path = file_path
         self._html_extractor_params = {
@@ -34,13 +33,20 @@ class UnstructuredEpubExtractor(BaseExtractor):
             'seperate_tables': seperate_tables,
             'split_tags': split_tags,
             'prevent_duplicate_header': prevent_duplicate_header,
+            'use_summary': use_summary,
         }
 
-    def _get_book_title(self, book):
-        title = book.get_metadata('DC', 'title')
-        if title:
-            book_title = title[0][0]
-            return re.sub(r'^#+', '', book_title)
+    def _get_book_title(self, epub_zip):
+        try:
+            for name in epub_zip.namelist():
+                if name.endswith('.opf'):
+                    with epub_zip.open(name) as f:
+                        soup = BeautifulSoup(f.read(), 'xml')
+                        title = soup.find('dc:title')
+                        if title:
+                            return re.sub(r'^#+', '', title.text)
+        except:
+            pass
         return os.path.splitext(os.path.basename(self._file_path))[0]
 
     @staticmethod
@@ -51,36 +57,21 @@ class UnstructuredEpubExtractor(BaseExtractor):
             if element.get('xml:lang'):
                 del element['xml:lang']
 
-    @staticmethod
-    def _add_title_to_soup(soup, book_title):
-        title_tag = soup.find('title')
-        if title_tag:
-            title_tag.string = book_title
-            return
-            
-        head_tag = soup.find('head')
-        if not head_tag:
-            head_tag = soup.new_tag('head')
-            if soup.html:
-                soup.html.insert(0, head_tag)
-            else:
-                soup.append(head_tag)
-        head_tag.append(soup.new_tag('title', string=book_title))
-
     def extract(self):
-        book = epub.read_epub(self._file_path)
-        book_title = self._get_book_title(book)
-        
-        texts = []
-        for item in book.get_items():
-            if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                soup = BeautifulSoup(item.content, 'html.parser')
-                self._process_soup_element(soup)
-                self._add_title_to_soup(soup, book_title)
+        with zipfile.ZipFile(self._file_path) as epub_zip:
+            book_title = self._get_book_title(epub_zip)
 
-                body = soup.find('body')
-                text = str(body.decode_contents()) if body else str(soup)
-                texts.append(text)
+            texts = []
+            html_files = [f for f in epub_zip.namelist() if f.endswith(('.html', '.xhtml'))]
+
+            for html_file in html_files:
+                with epub_zip.open(html_file) as f:
+                    soup = BeautifulSoup(f.read(), 'html.parser')
+                    self._process_soup_element(soup)
+
+                    body = soup.find('body')
+                    text = str(body.decode_contents()) if body else str(soup)
+                    texts.append(text)
 
         html_content = EPUB_HTML_TEMPLATE.format(
             book_title=book_title,
