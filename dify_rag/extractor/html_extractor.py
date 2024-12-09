@@ -18,6 +18,7 @@ class HtmlExtractor(BaseExtractor):
         seperate_tables: bool = True,
         split_tags: list[str] = constants.SPLIT_TAGS,
         prevent_duplicate_header: bool = True,
+        use_summary: bool = True,
     ) -> None:
         self._file_path = file_path
         self._remove_hyperlinks = remove_hyperlinks
@@ -28,6 +29,7 @@ class HtmlExtractor(BaseExtractor):
         self._seperate_tables = seperate_tables
         self._split_tags = split_tags
         self._prevent_duplicate_header = prevent_duplicate_header
+        self._use_summary = use_summary
 
     def extract(self) -> list[Document]:
         # check if the file is an EMR file
@@ -52,9 +54,11 @@ class HtmlExtractor(BaseExtractor):
                 self._prevent_duplicate_header,
             )
 
-            html_doc = readability.Document(text)
+            if self._use_summary:
+                html_doc = readability.Document(text)
+                text = html_doc.summary(html_partial=True)
             content, split_contents, titles = html_text.extract_text(
-                html_doc.summary(html_partial=True),
+                text,
                 title=title,
                 split_tags=self._split_tags,
             )
