@@ -3,11 +3,13 @@ import re
 import tempfile
 import zipfile
 
+from bs4 import BeautifulSoup
+
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import constants
 from dify_rag.extractor.html_extractor import HtmlExtractor
 from dify_rag.extractor.unstructured.constants import EPUB_HTML_TEMPLATE
-from bs4 import BeautifulSoup
+
 
 class UnstructuredEpubExtractor(BaseExtractor):
     def __init__(
