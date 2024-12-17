@@ -8,10 +8,17 @@ from bs4 import BeautifulSoup
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import constants
 from dify_rag.extractor.html_extractor import HtmlExtractor
-from dify_rag.extractor.unstructured.constants import EPUB_HTML_TEMPLATE
 
+EPUB_HTML_TEMPLATE = '''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{book_title}</title>
+</head>
+<body>{content}</body>
+</html>''' 
 
-class UnstructuredEpubExtractor(BaseExtractor):
+class EpubExtractor(BaseExtractor):
     def __init__(
         self,
         file_path: str,
