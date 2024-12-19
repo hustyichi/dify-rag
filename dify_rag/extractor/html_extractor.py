@@ -2,7 +2,6 @@ from dify_rag.extractor import utils
 from dify_rag.extractor.emr_extractor import EMRExtractorFactory
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import constants, html_helper, html_text, readability
-from dify_rag.models import constants as global_constants
 from dify_rag.models.document import Document
 
 
@@ -16,6 +15,7 @@ class HtmlExtractor(BaseExtractor):
         title_convert_to_markdown: bool = False,
         use_first_header_as_title: bool = False,
         seperate_tables: bool = True,
+        cut_table_to_line: bool = True,
         split_tags: list[str] = constants.SPLIT_TAGS,
         prevent_duplicate_header: bool = True,
         use_summary: bool = True,
@@ -27,6 +27,7 @@ class HtmlExtractor(BaseExtractor):
         self._title_convert_to_markdown = title_convert_to_markdown
         self._use_first_header_as_title = use_first_header_as_title
         self._seperate_tables = seperate_tables
+        self._cut_table_to_line = cut_table_to_line
         self._split_tags = split_tags
         self._prevent_duplicate_header = prevent_duplicate_header
         self._use_summary = use_summary
@@ -82,16 +83,13 @@ class HtmlExtractor(BaseExtractor):
                 )
 
             for table in tables:
-                docs.append(
-                    Document(
-                        page_content=table["table"],
-                        metadata={
-                            "titles": html_helper.trans_meta_titles(
-                                table["titles"], self._title_convert_to_markdown
-                            ),
-                            "content_type": global_constants.ContentType.TABLE,
-                        },
+                if self._cut_table_to_line:
+                    for doc in html_helper.html_cut_table_handler(table):
+                        docs.append(doc)
+                else:
+                    docs.append(
+                        html_helper.html_origin_table_handler(
+                            table, self._title_convert_to_markdown
+                        )
                     )
-                )
-
             return docs
