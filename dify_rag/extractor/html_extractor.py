@@ -15,7 +15,7 @@ class HtmlExtractor(BaseExtractor):
         title_convert_to_markdown: bool = False,
         use_first_header_as_title: bool = False,
         seperate_tables: bool = True,
-        cut_to_line: bool = True,
+        cut_table_to_line: bool = True,
         split_tags: list[str] = constants.SPLIT_TAGS,
         prevent_duplicate_header: bool = True,
         use_summary: bool = True,
@@ -27,7 +27,7 @@ class HtmlExtractor(BaseExtractor):
         self._title_convert_to_markdown = title_convert_to_markdown
         self._use_first_header_as_title = use_first_header_as_title
         self._seperate_tables = seperate_tables
-        self._cut_to_line = cut_to_line
+        self._cut_table_to_line = cut_table_to_line
         self._split_tags = split_tags
         self._prevent_duplicate_header = prevent_duplicate_header
         self._use_summary = use_summary
@@ -83,7 +83,7 @@ class HtmlExtractor(BaseExtractor):
                 )
 
             for table in tables:
-                if self._cut_to_line:
+                if self._cut_table_to_line:
                     for doc in html_helper.html_cut_table_handler(table):
                         docs.append(doc)
                 else:
