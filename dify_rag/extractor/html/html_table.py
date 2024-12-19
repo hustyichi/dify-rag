@@ -8,7 +8,7 @@ import os
 from bs4 import BeautifulSoup, Tag
 
 
-class Extractor(object):
+class HtmlTableExtractor(object):
     def __init__(self, input, id_=None, **kwargs):
         # TODO: should divide this class into two subclasses
         # to deal with string and bs4.Tag separately

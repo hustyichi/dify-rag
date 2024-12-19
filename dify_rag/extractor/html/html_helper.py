@@ -6,7 +6,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 from dify_rag.extractor.html import constants
-from dify_rag.extractor.html.html_table import Extractor
+from dify_rag.extractor.html.html_table import HtmlTableExtractor
 from dify_rag.models import constants as global_constants
 from dify_rag.models.document import Document
 
@@ -41,7 +41,6 @@ def recursive_preprocess_tables(soup: BeautifulSoup, title: str) -> list:
         key for key in constants.TAG_HIERARCHY.keys() if key != constants.TITLE_KEY
     ] + ["table"]
     for tag in soup.find_all(match_tags):
-
         if tag.name in constants.TAG_HIERARCHY:
             level = constants.TAG_HIERARCHY[tag.name]
             title_text = tag.get_text(strip=True)
@@ -72,7 +71,6 @@ def preprocess_tables(soup: BeautifulSoup, title: str) -> list:
         key for key in constants.TAG_HIERARCHY.keys() if key != constants.TITLE_KEY
     ] + ["table"]
     for tag in soup.find_all(match_tags):
-
         if tag.name in constants.TAG_HIERARCHY:
             level = constants.TAG_HIERARCHY[tag.name]
             title_text = tag.get_text(strip=True)
@@ -84,7 +82,7 @@ def preprocess_tables(soup: BeautifulSoup, title: str) -> list:
 
         elif tag.name == "table":
             table_md = convert_table_to_markdown(tag)
-            table_extractor = Extractor(tag)
+            table_extractor = HtmlTableExtractor(tag)
             table_extractor.parse()
             tag.decompose()
 

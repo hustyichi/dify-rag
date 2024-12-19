@@ -1,12 +1,7 @@
-import re
-
-import pandas as pd
-
 from dify_rag.extractor import utils
 from dify_rag.extractor.emr_extractor import EMRExtractorFactory
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import constants, html_helper, html_text, readability
-from dify_rag.models import constants as global_constants
 from dify_rag.models.document import Document
 
 
