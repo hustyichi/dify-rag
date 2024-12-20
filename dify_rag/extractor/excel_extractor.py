@@ -7,8 +7,8 @@ import pandas as pd
 from openpyxl import load_workbook
 
 from dify_rag.extractor.extractor_base import BaseExtractor
+from dify_rag.extractor.html_extractor import HtmlExtractor
 from dify_rag.extractor.utils import get_encoding
-from dify_rag.models import constants as global_constants
 from dify_rag.models.document import Document
 
 
@@ -27,7 +27,7 @@ class ExcelExtractor(BaseExtractor):
     ):
         """Initialize with file path."""
         self._file_path = file_path
-        self._encoding = get_encoding(file_path) 
+        self._encoding = get_encoding(file_path)
         self._file_name = file_name
         if file_name:
             self._file_name = os.path.basename(file_name).split(".")[0]
@@ -47,33 +47,8 @@ class ExcelExtractor(BaseExtractor):
                 except StopIteration:
                     continue
                 df = pd.DataFrame(data, columns=cols)
-
+                html_content = df.to_html(index=False)
                 df.dropna(how="all", inplace=True)
-
-                for index, row in df.iterrows():
-                    page_content, titles = [], [self._file_name]
-                    if "sheet" not in sheet_name.lower():
-                        titles.append(sheet_name)
-                    for col_index, (k, v) in enumerate(row.items()):
-                        if pd.notna(v):
-                            cell = sheet.cell(
-                                row=index + 2, column=col_index + 1
-                            )  # +2 to account for header and 1-based index
-                            if cell.hyperlink:
-                                value = f"[{v}]({cell.hyperlink.target})"
-                                page_content.append(f'"{k}":"{value}"')
-                            else:
-                                page_content.append(f'"{k}":"{v}"')
-                    documents.append(
-                        Document(
-                            page_content=";".join(page_content),
-                            metadata={
-                                "source": self._file_path,
-                                "titles": titles,
-                                "content_type": global_constants.ContentType.TABLE,
-                            },
-                        )
-                    )
 
         elif file_extension == ".xls":
             excel_file = pd.ExcelFile(self._file_path, engine="xlrd")
@@ -81,24 +56,11 @@ class ExcelExtractor(BaseExtractor):
                 df = excel_file.parse(sheet_name=sheet_name)
                 df.dropna(how="all", inplace=True)
 
-                for _, row in df.iterrows():
-                    page_content, titles = [], [self._file_name]
-                    if "sheet" not in sheet_name.lower():
-                        titles.append(sheet_name)
-                    for k, v in row.items():
-                        if pd.notna(v):
-                            page_content.append(f'"{k}":"{v}"')
-                    documents.append(
-                        Document(
-                            page_content=";".join(page_content),
-                            metadata={
-                                "source": self._file_path,
-                                "titles": titles,
-                                "content_type": global_constants.ContentType.TABLE,
-                            },
-                        )
-                    )
         else:
             raise ValueError(f"Unsupported file extension: {file_extension}")
+        extractor = HtmlExtractor(html_content)
+
+        docs = extractor.extract()
+        documents.extend(docs)
 
         return documents

@@ -1,14 +1,13 @@
 """Abstract interface for document loader implementations."""
 
-import csv
 import os
 from typing import Optional
 
 import pandas as pd
 
 from dify_rag.extractor.extractor_base import BaseExtractor
+from dify_rag.extractor.html_extractor import HtmlExtractor
 from dify_rag.extractor.utils import get_encoding
-from dify_rag.models import constants as global_constants
 from dify_rag.models.document import Document
 
 
@@ -48,30 +47,11 @@ class CSVExtractor(BaseExtractor):
         try:
             # load csv file into pandas dataframe
             df = pd.read_csv(csvfile, on_bad_lines="skip", **self.csv_args)
+            html_content = df.to_html(index=False)
+            extractor = HtmlExtractor(html_content)
 
-            # check source column exists
-            if self.source_column and self.source_column not in df.columns:
-                raise ValueError(
-                    f"Source column '{self.source_column}' not found in CSV file."
-                )
-
-            # create document objects
-
-            for i, row in df.iterrows():
-                content = ";".join(
-                    f"{col.strip()}: {str(row[col]).strip()}" for col in df.columns
-                )
-
-                source = row[self.source_column] if self.source_column else ""
-                metadata = {
-                    "source": source,
-                    "row": i,
-                    "titles": [self._file_name],
-                    "content_type": global_constants.ContentType.TABLE,
-                }
-                doc = Document(page_content=content, metadata=metadata)
-                docs.append(doc)
-        except csv.Error as e:
+            docs = extractor.extract()
+        except BaseException as e:
             raise e
 
         return docs
