@@ -1,4 +1,7 @@
 import re
+from functools import lru_cache
+
+import jieba
 
 common_characters = set(
     "＞、abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?;:'\"-，。！？；：”“‘’\n\t+-*\\/·[]{}【】()（）@#$%^&<>《》`~］′＜～‐='"
@@ -138,44 +141,56 @@ def is_gibberish(text):
                 return False
     return check_result_list.count(False) / len(check_result_list) < 0.3
 
+@lru_cache(maxsize=2048)
+def get_word_segments(context: str):
+    return list(jieba.cut(context, cut_all=True))
+
+@lru_cache(maxsize=4096)
+def should_protect_char(context: str, char: str) -> bool:
+    return any(len(word) > 1 for word in get_word_segments(context) if char in word)
+
+def create_replace_func(text: str, conversion_rules: dict):
+    def replace_func(match):
+        char = match.group(0)
+        pos = match.start()
+        context = text[max(0, pos - 3):min(len(text), pos + 4)]
+        return char if should_protect_char(context, char) else conversion_rules[char]
+    return replace_func
 
 def fix_error_pdf_content(text: str):
     # 替换空白字符
     text = text.replace("\xa0", "")
     text = text.replace("\u3000", " ")
     text = text.replace("\U001001b0", ".")
-    # 匹配，和袁的映射
-    text = text.replace("袁", "，")
-    # 匹配。和 遥
-    text = text.replace("遥", "。")
-    # 匹配：和 院
-    ## 如果院前面是医的话，那么就不用转换
-    text = re.sub(r"(?<!医)院", "：", text)
-    # 匹配（和 渊
-    text = text.replace("渊", "（")
-    # 匹配）和 冤
-    text = text.replace("冤", "）")
-    # 匹配、和尧
-    text = text.replace("尧", "、")
-    # 匹配【和 揖
-    text = text.replace("揖", "【")
-    # 匹配】和 铱
-    text = text.replace("铱", "】")
+
+    conversion_rules = {
+        "袁": "，",
+        "遥": "。",
+        "院": "：",
+        "渊": "（",
+        "冤": "）",
+        "尧": "、",
+        "揖": "【",
+        "铱": "】",
+        "耀": "~",
+        "曰": "；",
+        "鄄": "-",
+        "覬": "∅",
+    }
+    pattern = re.compile('|'.join(map(re.escape, conversion_rules.keys())))
+
+    replace_func = create_replace_func(text, conversion_rules)
+    text = pattern.sub(replace_func, text)
+
     # 匹配℃ 和益 利用正则匹配了益字前面是否为数字，如果是数字那么才匹配
     # 注意识别出来的益和前面的数字之间有一个空格的
     text = re.sub(r"(?<=\d\s)益", "℃", text)
-    # 匹配~和 耀
-    text = text.replace("耀", "~")
-    # 匹配；和 曰
-    text = text.replace("曰", "；")
 
     text = re.sub(r"(\d)依", r"\1±", text)
 
     text = text.replace("滋g", "μg")
 
     text = re.sub(r"伊(\d+)", r"x\1", text)
-
-    text = text.replace("覬", "∅")
 
     # 修复 《 和 》 解析异常
     text = re.sub(r"叶(.*?)曳", r"《\1》", text, flags=re.DOTALL)
@@ -184,9 +199,6 @@ def fix_error_pdf_content(text: str):
     text = re.sub(r"逸(\d+)", r"≥", text)
     text = re.sub(r"臆(\d+)", r"≤", text)
 
-    # 修复 -
-    text = text.replace("鄄", "-")
-    
     # 修复 ●
     text = text.replace("\uf06c", "●")
 

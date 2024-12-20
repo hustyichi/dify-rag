@@ -17,6 +17,7 @@ lxml-html-clean = "^0.2.0"
 chardet = "^5.1.0"
 requests = "^2.30.0"
 mammoth = "^1.8.0"
+jieba = "^0.42.1"
 
 [[tool.poetry.source]]
 name = "mirrors"
