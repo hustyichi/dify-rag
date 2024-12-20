@@ -7,7 +7,7 @@ readme = "README.md"
 repository = "https://github.com/hustyichi/dify-rag"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 pydantic = "^2.8.2"
 pydantic-core = "^2.20.1"
 annotated-types = "^0.7.0"
@@ -18,6 +18,8 @@ chardet = "^5.1.0"
 requests = "^2.30.0"
 mammoth = "^1.8.0"
 jieba = "^0.42.1"
+pandas = "2.2.2"
+numpy = "1.26.4"
 
 [[tool.poetry.source]]
 name = "mirrors"
