@@ -26,7 +26,7 @@ class HtmlExtractor(BaseExtractor):
     ) -> None:
         self._file_path = file_path
         self._file = file
-        if not self._file_path or not self._file:
+        if not self._file_path and not self._file:
             raise RuntimeError("file_path or file must exist")
         self._remove_hyperlinks = remove_hyperlinks
         self._fix_check = fix_check
