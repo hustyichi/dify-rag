@@ -48,7 +48,7 @@ class CSVExtractor(BaseExtractor):
             # load csv file into pandas dataframe
             df = pd.read_csv(csvfile, on_bad_lines="skip", **self.csv_args)
             html_content = df.to_html(index=False)
-            extractor = HtmlExtractor(html_content)
+            extractor = HtmlExtractor(file=html_content)
 
             docs = extractor.extract()
         except BaseException as e:

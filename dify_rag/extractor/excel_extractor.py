@@ -47,7 +47,6 @@ class ExcelExtractor(BaseExtractor):
                 except StopIteration:
                     continue
                 df = pd.DataFrame(data, columns=cols)
-                html_content = df.to_html(index=False)
                 df.dropna(how="all", inplace=True)
 
         elif file_extension == ".xls":
@@ -58,7 +57,9 @@ class ExcelExtractor(BaseExtractor):
 
         else:
             raise ValueError(f"Unsupported file extension: {file_extension}")
-        extractor = HtmlExtractor(html_content)
+
+        html_content = df.to_html(index=False)
+        extractor = HtmlExtractor(file=html_content)
 
         docs = extractor.extract()
         documents.extend(docs)

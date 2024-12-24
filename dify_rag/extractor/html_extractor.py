@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 from dify_rag.extractor import utils
 from dify_rag.extractor.emr_extractor import EMRExtractorFactory
@@ -11,7 +12,8 @@ from dify_rag.models.document import Document
 class HtmlExtractor(BaseExtractor):
     def __init__(
         self,
-        file: str,
+        file_path: Optional[str] = None,
+        file: Optional[str] = None,
         remove_hyperlinks: bool = True,
         fix_check: bool = True,
         contain_closest_title_levels: int = 0,
@@ -23,7 +25,12 @@ class HtmlExtractor(BaseExtractor):
         prevent_duplicate_header: bool = True,
         use_summary: bool = True,
     ) -> None:
-        self._file = file
+        if file_path:
+            self._file = file_path
+        elif file:
+            self._file = file
+        else:
+            raise RuntimeError("file_path or file must exist")
         self._remove_hyperlinks = remove_hyperlinks
         self._fix_check = fix_check
         self._contain_closest_title_levels = contain_closest_title_levels
