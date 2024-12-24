@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -25,11 +24,9 @@ class HtmlExtractor(BaseExtractor):
         prevent_duplicate_header: bool = True,
         use_summary: bool = True,
     ) -> None:
-        if file_path:
-            self._file = file_path
-        elif file:
-            self._file = file
-        else:
+        self._file_path = file_path
+        self._file = file
+        if not self._file_path or not self._file:
             raise RuntimeError("file_path or file must exist")
         self._remove_hyperlinks = remove_hyperlinks
         self._fix_check = fix_check
@@ -44,14 +41,14 @@ class HtmlExtractor(BaseExtractor):
 
     def extract(self) -> list[Document]:
         # check if the file is an EMR file
-        extractor = EMRExtractorFactory.get_extractor(self._file)
-        if extractor:
-            return extractor.extract()
+        if self._file_path:
+            extractor = EMRExtractorFactory.get_extractor(self._file_path)
+            if extractor:
+                return extractor.extract()
 
-        # if not EMR file, then extract as html file
-        if os.path.exists(self._file):
-            text_content = Path(self._file).read_text(
-                encoding=utils.get_encoding(self._file)
+            # if not EMR file, then extract as html file
+            text_content = Path(self._file_path).read_text(
+                encoding=utils.get_encoding(self._file_path)
             )
         else:
             text_content = self._file
