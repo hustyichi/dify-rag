@@ -25,7 +25,10 @@ pip install dify-rag
 
 | 格式 | 结构化解析 | 表格解析 |
 | --- | --- | --- |
-| html | 支持 | 支持独立拆分，支持转换 markdown 格式 |
-| md | 支持 | 支持独立拆分，支持 markdown 格式 |
-| docx | 支持 | 支持独立拆分，支持转换 markdown 格式|
+| html | 支持 | 支持独立拆分，支持转换 markdown 格式，支持按行切分 |
+| md | 支持 | 支持独立拆分，支持 markdown 格式，支持按行切分 |
+| docx | 支持 | 支持独立拆分，支持转换 markdown 格式，支持按行切分 |
 | pdf | 部分支持，需本身有目录信息 | 不支持 |
+| epub | 支持 | 支持独立拆分，支持转换 markdown 格式，支持按行切分 |
+| xlsx | 支持 | 支持独立拆分，支持转换 markdown 格式，支持按行切分 |
+| csv | 支持 | 支持独立拆分，支持转换 markdown 格式，支持按行切分 |
