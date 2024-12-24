@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Optional
+
 from dify_rag.extractor import utils
 from dify_rag.extractor.emr_extractor import EMRExtractorFactory
 from dify_rag.extractor.extractor_base import BaseExtractor
@@ -8,7 +11,8 @@ from dify_rag.models.document import Document
 class HtmlExtractor(BaseExtractor):
     def __init__(
         self,
-        file_path: str,
+        file_path: Optional[str] = None,
+        file: Optional[str] = None,
         remove_hyperlinks: bool = True,
         fix_check: bool = True,
         contain_closest_title_levels: int = 0,
@@ -21,6 +25,9 @@ class HtmlExtractor(BaseExtractor):
         use_summary: bool = True,
     ) -> None:
         self._file_path = file_path
+        self._file = file
+        if not self._file_path and not self._file:
+            raise RuntimeError("file_path or file must exist")
         self._remove_hyperlinks = remove_hyperlinks
         self._fix_check = fix_check
         self._contain_closest_title_levels = contain_closest_title_levels
@@ -34,27 +41,31 @@ class HtmlExtractor(BaseExtractor):
 
     def extract(self) -> list[Document]:
         # check if the file is an EMR file
-        extractor = EMRExtractorFactory.get_extractor(self._file_path)
-        if extractor:
-            return extractor.extract()
+        if self._file_path:
+            extractor = EMRExtractorFactory.get_extractor(self._file_path)
+            if extractor:
+                return extractor.extract()
 
-        # if not EMR file, then extract as html file
-        with open(
-            self._file_path, "r", encoding=utils.get_encoding(self._file_path)
-        ) as f:
-            text = f.read()
-
-            # preprocess
-            text, tables, title = html_helper.preprocessing(
-                text,
-                readability.Document(text).title(),
-                self._use_first_header_as_title,
-                self._remove_hyperlinks,
-                self._fix_check,
-                self._seperate_tables,
-                self._prevent_duplicate_header,
+            # if not EMR file, then extract as html file
+            text_content = Path(self._file_path).read_text(
+                encoding=utils.get_encoding(self._file_path)
             )
+        else:
+            text_content = self._file
 
+        # preprocess
+        text, tables, title = html_helper.preprocessing(
+            text_content,
+            readability.Document(text_content).title(),
+            self._use_first_header_as_title,
+            self._remove_hyperlinks,
+            self._fix_check,
+            self._seperate_tables,
+            self._prevent_duplicate_header,
+        )
+
+        docs = []
+        if text:
             if self._use_summary:
                 html_doc = readability.Document(text)
                 text = html_doc.summary(html_partial=True)
@@ -63,8 +74,6 @@ class HtmlExtractor(BaseExtractor):
                 title=title,
                 split_tags=self._split_tags,
             )
-
-            docs = []
             for content, hierarchy_titles in zip(split_contents, titles):
                 docs.append(
                     Document(
@@ -82,14 +91,14 @@ class HtmlExtractor(BaseExtractor):
                     )
                 )
 
-            for table in tables:
-                if self._cut_table_to_line:
-                    for doc in html_helper.html_cut_table_handler(table):
-                        docs.append(doc)
-                else:
-                    docs.append(
-                        html_helper.html_origin_table_handler(
-                            table, self._title_convert_to_markdown
-                        )
+        for table in tables:
+            if self._cut_table_to_line:
+                for doc in html_helper.html_cut_table_handler(table):
+                    docs.append(doc)
+            else:
+                docs.append(
+                    html_helper.html_origin_table_handler(
+                        table, self._title_convert_to_markdown
                     )
-            return docs
+                )
+        return docs
