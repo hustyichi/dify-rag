@@ -106,7 +106,7 @@ class HtmlTableExtractor(object):
 
             # Check if next row exists and has same first column value
             has_next = i + 1 < len(data)
-            should_merge = has_next and data[i + 1][0] == current_row[0]
+            should_merge = i == 0 and has_next and data[i + 1][0] == current_row[0] and len(current_row) == len(data[i+1])
 
             if should_merge:
                 next_row = data[i + 1]
@@ -114,12 +114,10 @@ class HtmlTableExtractor(object):
 
                 # Merge the two rows
                 for col in range(len(current_row)):
-                    if col == 0:
-                        # Keep first column value from current row
+                    if current_row[col] == next_row[col]:
                         merged_row.append(current_row[col])
                     else:
-                        # Concatenate other column values
-                        merged_row.append(current_row[col] + next_row[col])
+                        merged_row.append(current_row[col] + " " + next_row[col])
 
                 result.append(merged_row)
                 i += 2  # Skip next row since it's been merged
