@@ -390,7 +390,7 @@ class Document:
                 ordered.append(grand_parent_node)
 
             content_score = 1
-            content_score += len(inner_text.split(","))
+            content_score += len(re.compile(r'[,.，。；;：:！!？?、]').split(inner_text)) - 1
             content_score += min((inner_text_len / 100), 3)
             # if elem not in candidates:
             #    candidates[elem] = self.score_node(elem)
