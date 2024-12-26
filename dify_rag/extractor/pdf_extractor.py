@@ -141,12 +141,12 @@ class PdfExtractor(BaseExtractor):
                 if prev_level < current_level and (not stack or prev_level < stack[-1][0]):
                     stack.append((prev_level, prev_title))
 
-            titles = [title for _, title in sorted(stack)]
-            titles.append(current_title)
+            titles = [fix_error_pdf_content(title) for _, title in sorted(stack)]
+            titles.append(fix_error_pdf_content(current_title))
             
             next_idx = lines_toc[i + 1][2] if i + 1 < len(lines_toc) else len(lines)
 
-            section_content = "".join(lines[current_idx+1:next_idx])
+            section_content = fix_error_pdf_content("".join(lines[current_idx+1:next_idx]))
 
             documents.append(Document(
                 page_content=section_content,
