@@ -160,6 +160,7 @@ def create_replace_func(text: str, conversion_rules: dict):
 def fix_error_pdf_content(text: str):
     # 替换空白字符
     text = text.replace("\xa0", "")
+    text = text.replace("\u2002", "")
     text = text.replace("\u3000", " ")
     text = text.replace("\U001001b0", ".")
 
