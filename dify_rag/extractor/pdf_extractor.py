@@ -8,15 +8,22 @@ from typing import Optional
 import pymupdf
 
 from dify_rag.extractor.extractor_base import BaseExtractor
+from dify_rag.extractor.pdf import constants
 from dify_rag.extractor.pdf.toc import generate_toc
 from dify_rag.extractor.utils import fix_error_pdf_content, is_gibberish
 from dify_rag.models.document import Document
 
 
 class PdfExtractor(BaseExtractor):
-    def __init__(self, file_path: str, file_cache_key: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        file_path: str,
+        file_cache_key: Optional[str] = None,
+        split_tags: list[str] = constants.SPLIT_TAGS,
+    ) -> None:
         self._file_path = file_path
         self._file_cache_key = file_cache_key
+        self._split_tags = split_tags
 
     @staticmethod
     def _get_lines(page_blocks):
@@ -143,7 +150,7 @@ class PdfExtractor(BaseExtractor):
 
             titles = [fix_error_pdf_content(title) for _, title in sorted(stack)]
             titles.append(fix_error_pdf_content(current_title))
-            
+
             next_idx = lines_toc[i + 1][2] if i + 1 < len(lines_toc) else len(lines)
 
             section_content = fix_error_pdf_content("".join(lines[current_idx+1:next_idx]))
@@ -167,10 +174,14 @@ class PdfExtractor(BaseExtractor):
         else:
             lines_toc = generate_toc(lines)
 
+        if self._split_tags and lines_toc:
+            lines_toc = [t for t in lines_toc if t[0] in self._split_tags]
+
         if lines_toc:
             documents = self._split_content(lines_toc, lines)
         else:
             content = fix_error_pdf_content("".join(lines))
             documents = [Document(page_content=content)]
 
+        doc.close()
         return documents

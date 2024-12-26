@@ -17,12 +17,13 @@ def extract_title(text: str) -> Optional[dict[str, str]]:
         return None
 
     for pattern in constants.TITLE_PATTERN:
+        pattern = re.compile(pattern)
         match = pattern.match(text)
         if match:
             matched_text = match.group(0)
             # 如果匹配的文本后面紧跟着标点符号，不视为标题
             remaining_text = text[len(matched_text):].strip()
-            if remaining_text and re.search(r'[。：:；;!！?？]', remaining_text):
+            if remaining_text and re.search(r'[，,。：:；;!！?？]', remaining_text) and len(remaining_text) > 2:
                 return None
             return {
                 'text': text,
@@ -32,7 +33,7 @@ def extract_title(text: str) -> Optional[dict[str, str]]:
 
 def is_summary(title: dict) -> bool:
     """判断给定的模式是否为摘要模式"""
-    return title['pattern'] == constants.SUMMARY_PATTERN.pattern if constants.SUMMARY_PATTERN else False
+    return title['pattern'] == constants.SUMMARY_PATTERN if constants.SUMMARY_PATTERN else False
 
 def generate_toc(lines: list[str]) -> list[list]:
     """生成目录结构"""
@@ -43,9 +44,10 @@ def generate_toc(lines: list[str]) -> list[list]:
     
     # 提取所有标题
     titles = []
-    for line in lines:
+    for i, line in enumerate(lines):
         title_info = extract_title(line)
         if title_info:
+            title_info['line_number'] = i
             titles.append(title_info)
 
     # 构建 pattern_order
@@ -60,7 +62,7 @@ def generate_toc(lines: list[str]) -> list[list]:
             # 摘要作为顶层标题
             if level is None:
                 level = 1
-            toc.append([level, title['text'], lines.index(title['text'])])
+            toc.append([level, title['text'], title['line_number']])
             continue
 
         current_level = pattern_order.index(title['pattern'])
@@ -82,7 +84,7 @@ def generate_toc(lines: list[str]) -> list[list]:
         else:
             level = 1
 
-        toc.append([level, title['text'], lines.index(title['text'])])
+        toc.append([level, title['text'], title['line_number']])
 
         stack.append(title)
 
