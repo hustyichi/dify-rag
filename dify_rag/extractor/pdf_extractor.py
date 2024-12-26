@@ -2,76 +2,75 @@
 # File: pdf_extractor.py
 # Description: None
 
-from collections import Counter
 from typing import Optional
 
 import pymupdf
 
 from dify_rag.extractor.extractor_base import BaseExtractor
-from dify_rag.extractor.utils import fix_error_pdf_content, is_gibberish
+from dify_rag.extractor.pdf import constants, pdf_helper
+from dify_rag.extractor.pdf.toc import generate_toc
+from dify_rag.extractor.utils import fix_error_pdf_content
 from dify_rag.models.document import Document
 
 
 class PdfExtractor(BaseExtractor):
-    def __init__(self, file_path: str, file_cache_key: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        file_path: str,
+        file_cache_key: Optional[str] = None,
+        split_tags: list[str] = constants.SPLIT_TAGS,
+    ) -> None:
         self._file_path = file_path
         self._file_cache_key = file_cache_key
+        self._split_tags = split_tags
 
     @staticmethod
-    def remove_invalid_char(text_blocks):
-        block_content = ""
-        for block in text_blocks:
-            block_text = block[4]
-            if is_gibberish(block_text):
-                block_content += block_text
-        return fix_error_pdf_content(block_content)
+    def _split_content(lines_toc, lines):
+        documents = []
 
-    @staticmethod
-    def check_doc_header_or_footer(doc):
-        # 页眉和页脚，每页都应该具备且格式相同
-        format_map = {"header": [], "footer": []}
-        for page in doc:
-            text_blocks = page.get_text("blocks")
-            if not text_blocks:
-                continue
-            format_map["header"].append(text_blocks[0][3] - text_blocks[0][1])
-            format_map["footer"].append(text_blocks[-1][3] - text_blocks[-1][1])
-        headers_count, footer_count = Counter(format_map["header"]), Counter(
-            format_map["footer"]
-        )
-        return (
-            max(headers_count.values()) / headers_count.total() >= 0.9,
-            max(footer_count.values()) / footer_count.total() >= 0.9,
-        )
+        for i, (current_level, current_title, current_idx) in enumerate(lines_toc):
+            titles = []
+            stack = []
 
-    @staticmethod
-    def split_completion(content, current_split):
-        split_content_list = content.split(current_split)
-        if len(split_content_list) > 1:
-            return split_content_list[0], "".join(split_content_list[1:])
-        return "", split_content_list.pop()
+            for prev_idx in range(i - 1, -1, -1):
+                prev_level, prev_title, _ = lines_toc[prev_idx]
+                if prev_level < current_level and (not stack or prev_level < stack[-1][0]):
+                    stack.append((prev_level, prev_title))
+
+            titles = [fix_error_pdf_content(title) for _, title in sorted(stack)]
+            titles.append(fix_error_pdf_content(current_title))
+
+            next_idx = lines_toc[i + 1][2] if i + 1 < len(lines_toc) else len(lines)
+
+            section_content = fix_error_pdf_content("".join(lines[current_idx+1:next_idx]))
+
+            documents.append(Document(
+                page_content=section_content,
+                metadata={"titles": titles}
+            ))
+        return documents
 
     def extract(self) -> list[Document]:
         # 基于pymupdf版本
         doc = pymupdf.open(self._file_path)
         toc = doc.get_toc()
         content, documents = "", []
-        header_exist, footer_exist = self.check_doc_header_or_footer(doc)
-        for page in doc:
-            text_blocks = page.get_text("blocks")
-            if header_exist:
-                text_blocks = text_blocks[1:]
-            if footer_exist:
-                text_blocks = text_blocks[:-1]
-            content += self.remove_invalid_char(text_blocks)
+        filtered_page_blocks = pdf_helper.filter_doc_header_or_footer(doc)
+        lines, lines_page_idx = pdf_helper.get_lines(filtered_page_blocks)
+
         if toc:
-            prxfix_split = ""
-            for _toc in toc:
-                current_split = _toc[1]
-                prefix, suffix = self.split_completion(content, current_split)
-                documents.append(Document(page_content=prxfix_split + prefix))
-                prxfix_split, content = current_split, suffix
-            documents.append(Document(page_content=prxfix_split + content))
+            lines_toc = pdf_helper.get_lines_toc(toc, lines, lines_page_idx)
         else:
-            documents.append(Document(page_content=content))
+            lines_toc = generate_toc(lines)
+
+        if self._split_tags and lines_toc:
+            lines_toc = [t for t in lines_toc if t[0] in self._split_tags]
+
+        if lines_toc:
+            documents = self._split_content(lines_toc, lines)
+        else:
+            content = fix_error_pdf_content("".join(lines))
+            documents = [Document(page_content=content)]
+
+        doc.close()
         return documents
