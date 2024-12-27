@@ -24,10 +24,13 @@ class ExcelExtractor(BaseExtractor):
         self,
         file_path: str,
         file_name: Optional[str] = None,
+        encoding: Optional[str] = None,
+        autodetect_encoding: bool = False,
     ):
         """Initialize with file path."""
         self._file_path = file_path
-        self._encoding = get_encoding(file_path)
+        self._encoding = encoding or get_encoding(file_path)
+        self._autodetect_encoding = autodetect_encoding
         self._file_name = file_name
         if file_name:
             self._file_name = os.path.basename(file_name).split(".")[0]
