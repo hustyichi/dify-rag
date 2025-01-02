@@ -76,7 +76,7 @@ class MarkdownExtractor(BaseExtractor):
                 )
             )
 
-        return documents
+        return utils.serialization_documents_metadata(documents) 
 
     @staticmethod
     def update_hierarchy_headers(
