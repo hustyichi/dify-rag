@@ -9,7 +9,10 @@ import pymupdf
 from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.pdf import constants, pdf_helper
 from dify_rag.extractor.pdf.toc import generate_toc
-from dify_rag.extractor.utils import fix_error_pdf_content
+from dify_rag.extractor.utils import (
+    fix_error_pdf_content,
+    serialization_documents_metadata,
+)
 from dify_rag.models.document import Document
 
 
@@ -73,4 +76,4 @@ class PdfExtractor(BaseExtractor):
             documents = [Document(page_content=content)]
 
         doc.close()
-        return documents
+        return serialization_documents_metadata(documents)
