@@ -28,6 +28,15 @@ class PdfExtractor(BaseExtractor):
     def _split_content(lines_toc, lines):
         documents = []
 
+        if lines_toc[0][2] > 1:
+            documents.append(
+                Document(
+                    page_content=fix_error_pdf_content(
+                        "".join(lines[0:lines_toc[0][2]])
+                    )
+                )
+            )
+
         for i, (current_level, current_title, current_idx) in enumerate(lines_toc):
             titles = []
             stack = []

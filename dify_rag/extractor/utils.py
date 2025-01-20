@@ -157,11 +157,17 @@ def create_replace_func(text: str, conversion_rules: dict):
         return char if should_protect_char(context, char) else conversion_rules[char]
     return replace_func
 
+MAX_MATCH_LENGTH = 500
+CIRCLE_NUMBERS_MAP = {
+    "淤": "①", "于": "②", "盂": "③", "榆": "④", "虞": "⑤",
+    "愚": "⑥", "舆": "⑦", "余": "⑧", "俞": "⑨", "逾": "⑩"
+}
+
 def fix_error_pdf_content(text: str):
     # 替换空白字符
     text = text.replace("\xa0", "")
     text = text.replace("\u2002", "")
-    text = text.replace("\u2003", "")
+    text = text.replace("\u2003", " ")
     text = text.replace("\u3000", " ")
     text = text.replace("\U001001b0", ".")
 
@@ -205,42 +211,11 @@ def fix_error_pdf_content(text: str):
     text = text.replace("\uf06c", "●")
 
     # 修复 ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩
-    text = re.sub(
-        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞(.*?)愚(.*?)舆(.*?)余(.*?)俞(.*?)逾",
-        r"①\1②\2③\3④\4⑤\5⑥\6⑦\7⑧\8⑨\9⑩",
-        text,
-        flags=re.DOTALL,
-    )
-    text = re.sub(
-        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞(.*?)愚(.*?)舆(.*?)余(.*?)俞",
-        r"①\1②\2③\3④\4⑤\5⑥\6⑦\7⑧\8⑨",
-        text,
-        flags=re.DOTALL,
-    )
-    text = re.sub(
-        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞(.*?)愚(.*?)舆(.*?)余",
-        r"①\1②\2③\3④\4⑤\5⑥\6⑦\7⑧",
-        text,
-        flags=re.DOTALL,
-    )
-    text = re.sub(
-        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞(.*?)愚(.*?)舆",
-        r"①\1②\2③\3④\4⑤\5⑥\6⑦",
-        text,
-        flags=re.DOTALL,
-    )
-    text = re.sub(
-        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞(.*?)愚",
-        r"①\1②\2③\3④\4⑤\5⑥",
-        text,
-        flags=re.DOTALL,
-    )
-    text = re.sub(
-        r"淤(.*?)于(.*?)盂(.*?)榆(.*?)虞", r"①\1②\2③\3④\4⑤", text, flags=re.DOTALL
-    )
-    text = re.sub(r"淤(.*?)于(.*?)盂(.*?)榆", r"①\1②\2③\3④", text, flags=re.DOTALL)
-    text = re.sub(r"淤(.*?)于(.*?)盂", r"①\1②\2③", text, flags=re.DOTALL)
-    text = re.sub(r"淤(.*?)于", r"①\1②", text, flags=re.DOTALL)
+    circle_numbers_chars = list(CIRCLE_NUMBERS_MAP.keys())
+    for i in range(len(circle_numbers_chars), 1, -1):
+        pattern = ''.join([f"{c}(.{{0,{MAX_MATCH_LENGTH}}}?)" for c in circle_numbers_chars[:i-1]]) + circle_numbers_chars[i-1]
+        replacement = ''.join([f"{CIRCLE_NUMBERS_MAP[c]}\\{j}" for j, c in enumerate(circle_numbers_chars[:i-1], 1)]) + CIRCLE_NUMBERS_MAP[circle_numbers_chars[i-1]]
+        text = re.sub(pattern, replacement, text, flags=re.DOTALL)
 
     # 修复 [ 和 ] 解析异常
     text = re.sub(r"咱(.{0,30}?)暂", r"[\1]", text, flags=re.DOTALL)
