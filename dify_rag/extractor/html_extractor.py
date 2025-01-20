@@ -101,5 +101,4 @@ class HtmlExtractor(BaseExtractor):
                         table, self._title_convert_to_markdown
                     )
                 )
-
-        return utils.serialization_documents_metadata(docs) 
+        return docs
