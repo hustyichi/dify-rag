@@ -1,10 +1,7 @@
 import re
 from functools import lru_cache
-from typing import List
 
 import jieba
-
-from dify_rag.models.document import Document
 
 common_characters = set(
     "＞、abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?;:'\"-，。！？；：”“‘’\n\t+-*\\/·[]{}【】()（）@#$%^&<>《》`~］′＜～‐='"
@@ -255,10 +252,3 @@ def fix_error_pdf_content(text: str):
     text = re.sub(r"(?<![\u4e00-\u9fa5])郁|郁(?![\u4e00-\u9fa5])|郁(?=期)", "Ⅳ", text)
 
     return text.replace("\n", "")
-
-
-def serialization_documents_metadata(documents: List[Document]):
-    for doc in documents:
-        # Only processes titles of metadata then
-        doc.metadata["titles"] = "\n".join(doc.metadata.get("titles", []))
-    return documents
