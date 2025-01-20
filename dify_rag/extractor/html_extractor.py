@@ -39,6 +39,18 @@ class HtmlExtractor(BaseExtractor):
         self._prevent_duplicate_header = prevent_duplicate_header
         self._use_summary = use_summary
 
+    def get_title(self, text_content: str) -> str:
+        title = readability.Document(text_content).title()
+        if title != constants.NO_TITLE:
+            return title
+
+        # get title from file_path
+        if self._file_path:
+            title = Path(self._file_path).stem
+            return title
+
+        return constants.NO_TITLE
+
     def extract(self) -> list[Document]:
         # check if the file is an EMR file
         if self._file_path:
@@ -56,7 +68,7 @@ class HtmlExtractor(BaseExtractor):
         # preprocess
         text, tables, title = html_helper.preprocessing(
             text_content,
-            readability.Document(text_content).title(),
+            self.get_title(text_content),
             self._use_first_header_as_title,
             self._remove_hyperlinks,
             self._fix_check,
