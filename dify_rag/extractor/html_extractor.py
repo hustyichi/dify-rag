@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -23,6 +24,8 @@ class HtmlExtractor(BaseExtractor):
         split_tags: list[str] = constants.SPLIT_TAGS,
         prevent_duplicate_header: bool = True,
         use_summary: bool = True,
+        # dify 本地文件名为 id，可以通过 file_name 传递真实文件名
+        file_name: Optional[str] = None,
     ) -> None:
         self._file_path = file_path
         self._file = file
@@ -38,6 +41,7 @@ class HtmlExtractor(BaseExtractor):
         self._split_tags = split_tags
         self._prevent_duplicate_header = prevent_duplicate_header
         self._use_summary = use_summary
+        self._file_name = file_name
 
     def get_title(self, text_content: str) -> str:
         title = readability.Document(text_content).title()
@@ -45,8 +49,8 @@ class HtmlExtractor(BaseExtractor):
             return title
 
         # get title from file_path
-        if self._file_path:
-            title = Path(self._file_path).stem
+        if self._file_name:
+            title = os.path.basename(self._file_name).split(".")[0]
             return title
 
         return constants.NO_TITLE
