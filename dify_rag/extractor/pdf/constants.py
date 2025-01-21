@@ -3,7 +3,9 @@ SUMMARY_KEYWORDS = [
     '摘要', '引言', '关键词', '前言', '目录'
 ]
 
-SUMMARY_PATTERN = fr"^[0-9. 一、i]*({'|'.join(k.replace('', r'\s*') for k in SUMMARY_KEYWORDS)})"
+SUMMARY_PATTERN = (
+    r"^[0-9. 一、i]*(" + "|".join(k.replace("", r"\s*") for k in SUMMARY_KEYWORDS) + ")"
+)
 
 TITLE_PATTERN = [
     SUMMARY_PATTERN,
