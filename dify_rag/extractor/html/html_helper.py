@@ -1,9 +1,11 @@
 import copy
 import logging
 import re
+from typing import Optional
 
 import pandas as pd
 from bs4 import BeautifulSoup
+from bs4.element import PageElement
 
 from dify_rag.extractor.html import constants
 from dify_rag.extractor.html.html_table import HtmlTableExtractor
@@ -61,6 +63,21 @@ def recursive_preprocess_tables(soup: BeautifulSoup, title: str) -> list:
     return table_with_titles
 
 
+def find_table_name(table_elem: PageElement) -> tuple[str, str]:
+    def is_table_name(content: Optional[str]) -> bool:
+        return bool(content and (content.startswith("表") or content.endswith("表")))
+
+    prev_sibling = table_elem.find_previous_sibling()
+    if prev_sibling and is_table_name(prev_sibling.string):
+        return prev_sibling.name, prev_sibling.string
+
+    next_sibling = table_elem.find_next_sibling()
+    if next_sibling and is_table_name(next_sibling.string):
+        return next_sibling.name, next_sibling.string
+
+    return "", ""
+
+
 def preprocess_tables(soup: BeautifulSoup, title: str) -> list:
     table_with_titles = []
     title_stack = []
@@ -81,6 +98,8 @@ def preprocess_tables(soup: BeautifulSoup, title: str) -> list:
             title_stack.append((tag.name, title_text))
 
         elif tag.name == "table":
+            table_name_tag, table_name = find_table_name(tag)
+            table_name_array = [(table_name_tag, table_name)] if table_name else []
             table_md = convert_table_to_markdown(tag)
             table_extractor = HtmlTableExtractor(tag)
             table_extractor.parse()
@@ -90,7 +109,7 @@ def preprocess_tables(soup: BeautifulSoup, title: str) -> list:
                 {
                     "table": table_extractor.return_list(),
                     "table_md": table_md,
-                    "titles": copy.deepcopy(title_stack),
+                    "titles": copy.deepcopy(title_stack) + table_name_array,
                 }
             )
 
@@ -151,7 +170,7 @@ def convert_to_markdown(html_tag: str, title: str) -> str:
     html_tag = html_tag.lower()
     if html_tag.startswith("h") and html_tag[1:].isdigit():
         level = int(html_tag[1])
-        return f'{"#" * level} {title}'
+        return f"{'#' * level} {title}"
     else:
         return title
 
@@ -205,15 +224,29 @@ def html_origin_table_handler(table, title_convert_to_markdown: bool):
     )
 
 
+def build_row_content(row, columns):
+    if len(columns) == 0:
+        content = ""
+    elif len(columns) == 1:
+        content = f"{columns[0].strip()}是{str(row[columns[0]].strip())}"
+    else:
+        first_col = columns[0]
+        first_col_data = row[first_col]
+
+        content = "\n\n".join(
+            f"{first_col.strip()}为{str(first_col_data).strip()}的{col.strip()}是{str(row[col]).strip()}"
+            for col in columns[1:]
+        )
+    return content
+
+
 def html_cut_table_handler(table):
     new_docs = []
     try:
         table_values = table["table"]
         df = pd.DataFrame(table_values[1:], columns=table_values[0])
         for i, row in df.iterrows():
-            content = ";".join(
-                f"{col.strip()}: {str(row[col]).strip()}" for col in df.columns
-            )
+            content = build_row_content(row, df.columns)
 
             metadata = {
                 "titles": trans_meta_titles(table["titles"], False),
