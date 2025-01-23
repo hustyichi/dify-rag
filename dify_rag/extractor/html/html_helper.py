@@ -65,7 +65,7 @@ def recursive_preprocess_tables(soup: BeautifulSoup, title: str) -> list:
 
 def find_table_name(table_elem: PageElement) -> tuple[str, str]:
     def is_table_name(content: Optional[str]) -> bool:
-        return bool(content and content.startswith("表"))
+        return bool(content and (content.startswith("表") or content.endswith("表")))
 
     prev_sibling = table_elem.find_previous_sibling()
     if prev_sibling and is_table_name(prev_sibling.string):
@@ -234,7 +234,7 @@ def build_row_content(row, columns):
         first_col_data = row[first_col]
 
         content = "\n".join(
-            f"{first_col.strip()}为{first_col_data.strip()}的{col.strip()}是{str(row[col]).strip()}"
+            f"{first_col.strip()}为{str(first_col_data).strip()}的{col.strip()}是{str(row[col]).strip()}"
             for col in columns[1:]
         )
     return content
