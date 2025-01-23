@@ -224,15 +224,29 @@ def html_origin_table_handler(table, title_convert_to_markdown: bool):
     )
 
 
+def build_row_content(row, columns):
+    if len(columns) == 0:
+        content = ""
+    elif len(columns) == 1:
+        content = f"{columns[0].strip()}是{str(row[columns[0]].strip())}"
+    else:
+        first_col = columns[0]
+        first_col_data = row[first_col]
+
+        content = "\n".join(
+            f"{first_col.strip()}为{first_col_data.strip()}的{col.strip()}是{str(row[col]).strip()}"
+            for col in columns[1:]
+        )
+    return content
+
+
 def html_cut_table_handler(table):
     new_docs = []
     try:
         table_values = table["table"]
         df = pd.DataFrame(table_values[1:], columns=table_values[0])
         for i, row in df.iterrows():
-            content = ";".join(
-                f"{col.strip()}: {str(row[col]).strip()}" for col in df.columns
-            )
+            content = build_row_content(row, df.columns)
 
             metadata = {
                 "titles": trans_meta_titles(table["titles"], False),
