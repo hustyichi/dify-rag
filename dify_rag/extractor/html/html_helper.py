@@ -233,7 +233,7 @@ def build_row_content(row, columns):
         first_col = columns[0]
         first_col_data = row[first_col]
 
-        content = "\n".join(
+        content = "\n\n".join(
             f"{first_col.strip()}为{str(first_col_data).strip()}的{col.strip()}是{str(row[col]).strip()}"
             for col in columns[1:]
         )
