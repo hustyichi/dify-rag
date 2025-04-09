@@ -50,12 +50,17 @@ class TitleStructurePost(RetrievalPostBase):
             title = content = doc.page_content
             if CUSTOM_SEP in doc.page_content:
                 title, content = doc.page_content.split(CUSTOM_SEP)
-            key = f"{document_id}_{title}"
+            key = f"{document_id}{CUSTOM_SEP}{title}"
             if title in query_docs_title_set:
                 title_map[key] = title_map.get(key, [])
                 title_map[key].append(content)
 
         for key, contents in title_map.items():
+            data = key.split(CUSTOM_SEP)
+            title = data[-1]
+            if title == contents[0]:
+                title = ""
+
             content = query_metadata_map[key]["content"]
             new_content = content
             if len(contents) >= 2:
@@ -74,8 +79,12 @@ class TitleStructurePost(RetrievalPostBase):
                         left -= 1
                         new_content = self.splice_contents(contents[left], new_content)
 
+            final_content = new_content
+            if title:
+                final_content = title + "\n" + new_content
+
             doc = Document(
-                page_content=new_content,
+                page_content=final_content,
                 metadata=query_metadata_map[key]["metadata"],
                 provider=query_metadata_map[key]["provider"],
             )
