@@ -39,7 +39,7 @@ class TitleStructurePost(RetrievalPostBase):
             if CUSTOM_SEP in doc.page_content:
                 title, content = doc.page_content.split(CUSTOM_SEP)
             query_docs_title_set.add(title)
-            key = f"{document_id}_{title}"
+            key = f"{document_id}{CUSTOM_SEP}{title}"
             if key not in query_metadata_map:
                 query_metadata_map[key] = {"metadata": {}, "content": ""}
             query_metadata_map[key]["metadata"] = doc.metadata
