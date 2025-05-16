@@ -99,7 +99,8 @@ class TestRetrieval(unittest.TestCase):
             TitleStructurePost(2000).reorganize(query_list, "test", adjunct),
             [
                 Document(
-                    page_content="'test1_1\ntest1_11test1_12", metadata={"document_id": "test"}
+                    page_content="test1_1\ntest1_11test1_12",
+                    metadata={"document_id": "test"},
                 )
             ],
         )
