@@ -5,7 +5,7 @@ import re
 
 import lxml
 import lxml.etree
-from lxml.html.clean import Cleaner
+from lxml_html_clean import Cleaner
 
 from dify_rag.extractor.html import constants
 
@@ -235,7 +235,7 @@ def etree_to_text(
             and compare_html_tags(current_hierarchy_titles[-1][0], tag) <= 0
         ):
             current_hierarchy_titles.pop()
-        
+
         normalized_text = _normalize_whitespace(text)
         current_hierarchy_titles.append((tag.strip(), normalized_text.strip()))
 
