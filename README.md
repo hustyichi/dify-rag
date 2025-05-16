@@ -8,7 +8,11 @@
 pip install dify-rag
 ```
 
-为了在 Dify 项目中使用，可以在 `api/pyproject.toml` 中添加 `dify-rag` 依赖，之后调用 `poetry lock --no-update` 更新依赖，即可在 Dify 项目中使用 Dify-RAG 包。
+为了在 Dify 项目中使用，可以在 `api/pyproject.toml` 中添加 `dify-rag` 依赖，之后更新对应的 lock 文件，在不同版本的 Dify 中存在一些差异：
+
+- poetry 1.x 版本，需要调用 `poetry lock --no-update` 更新 lock 文件依赖
+- poetry 2.x 版本，需要调用 `poetry lock` 更新 lock 文件依赖
+- uv 版本，需要调用 `uv lock` 更新 lock 文件依赖
 
 # 使用
 
