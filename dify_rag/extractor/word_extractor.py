@@ -1,8 +1,8 @@
 import os
 import tempfile
 import zipfile
-import io
 from xml.etree import ElementTree
+import logging
 
 import mammoth
 
@@ -10,6 +10,9 @@ from dify_rag.extractor.extractor_base import BaseExtractor
 from dify_rag.extractor.html import constants
 from dify_rag.extractor.html_extractor import HtmlExtractor
 from dify_rag.models.document import Document
+from dify_rag.extractor.utils import NS_WORD
+
+logger = logging.getLogger(__name__)
 
 
 def safe_convert_image(image):
@@ -19,7 +22,6 @@ def safe_convert_image(image):
                 "src": f"data:image/{image.content_type};base64,{image_bytes.read().encode('base64')}"
             }
     except Exception:
-        # 跳过
         pass
 
 
@@ -57,41 +59,46 @@ class WordExtractor(BaseExtractor):
             # First try with the original file
             with open(self._file_path, "rb") as docx_file:
                 result = mammoth.convert_to_html(
-                    docx_file, convert_image=mammoth.images.img_element(safe_convert_image)
+                    docx_file,
+                    convert_image=mammoth.images.img_element(safe_convert_image),
                 )
                 html_content = result.value
         except KeyError as e:
             if "rId" in str(e):
-                print(f"Relationship ID error encountered: {e}. Attempting to fix the document...")
-                
+                logger.error(
+                    f"Relationship ID error encountered: {e}. Attempting to fix the document..."
+                )
+
                 # If fixing didn't work, try a more aggressive approach - extract just the text
                 # Extract text directly from the document.xml
-                with zipfile.ZipFile(self._file_path, 'r') as zip_ref:
+                with zipfile.ZipFile(self._file_path, "r") as zip_ref:
                     try:
                         # Try to extract document.xml
-                        doc_xml = zip_ref.read('word/document.xml')
+                        doc_xml = zip_ref.read("word/document.xml")
                         root = ElementTree.fromstring(doc_xml)
-                        
+
                         # Extract text from paragraphs
-                        ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+                        ns = {"w": NS_WORD}
                         paragraphs = []
-                        
-                        for para in root.findall('.//w:p', ns):
+
+                        for para in root.findall(".//w:p", ns):
                             text_runs = []
-                            for text_elem in para.findall('.//w:t', ns):
+                            for text_elem in para.findall(".//w:t", ns):
                                 if text_elem.text:
                                     text_runs.append(text_elem.text)
                             if text_runs:
-                                paragraphs.append(' '.join(text_runs))
-                        
+                                paragraphs.append(" ".join(text_runs))
+
                         # Create simple HTML from extracted text
-                        html_content = '<html><body>'
+                        html_content = "<html><body>"
                         for para in paragraphs:
-                            html_content += f'<p>{para}</p>'
-                        html_content += '</body></html>'
-                        
+                            html_content += f"<p>{para}</p>"
+                        html_content += "</body></html>"
+
                     except Exception as xml_error:
-                        print(f"Failed to extract text from document.xml: {xml_error}")
+                        logger.error(
+                            f"Failed to extract text from document.xml: {xml_error}"
+                        )
                         raise
             else:
                 # If it's not a relationship ID error, re-raise
