@@ -48,7 +48,12 @@ class WordExtractor(BaseExtractor):
                 self._file_path,
                 "html",
                 outputfile=temp_html_path,
-                extra_args=["--standalone", "--toc", "--toc-depth=6"],
+                extra_args=[
+                    "--standalone",
+                    "--toc",
+                    "--toc-depth=6",
+                    f"--metadata=title:{original_name}",
+                ],
             )
         except Exception as e:
             logger.error(f"Failed to convert document using pandoc: {e}")
