@@ -10,6 +10,7 @@ common_characters = set(
 greek_letters = "αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
 common_characters.update(greek_letters)
 start_zh_ord, end_zh_ord = ord("一"), ord("龥")
+NS_WORD = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 all_codecs = [
     "utf-8",
