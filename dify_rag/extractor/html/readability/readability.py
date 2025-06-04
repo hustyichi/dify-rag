@@ -358,41 +358,38 @@ class Document:
         MIN_LEN = self.min_text_length
         candidates = {}
         ordered = []
-        for elem in self.tags(self._html(), "p", "pre", "td"):
-            parent_node = elem.getparent()
-            if parent_node is None:
-                continue
-            grand_parent_node = parent_node.getparent()
 
+        content_tags = ["p", "pre", "td"]
+
+        for elem in self.tags(self._html(), *content_tags):
+            # 获取所有父节点
+            parent_nodes = []
+            current = elem
+            while current is not None:
+                parent_nodes.append(current)
+                current = current.getparent()
+
+            # 处理当前元素
             inner_text = clean(elem.text_content() or "")
             inner_text_len = len(inner_text)
 
-            # If this paragraph is less than 25 characters
-            # don't even count it.
             if inner_text_len < MIN_LEN:
                 continue
 
-            if parent_node not in candidates:
-                candidates[parent_node] = self.score_node(parent_node)
-                ordered.append(parent_node)
-
-            if grand_parent_node is not None and grand_parent_node not in candidates:
-                candidates[grand_parent_node] = self.score_node(grand_parent_node)
-                ordered.append(grand_parent_node)
-
             content_score = len(re.compile(r"[,.，。；;：:！!？?、]").split(inner_text))
             content_score += min((inner_text_len / 100), 3)
-            # if elem not in candidates:
-            #    candidates[elem] = self.score_node(elem)
 
-            # WTF? candidates[elem]['content_score'] += content_score
-            candidates[parent_node]["content_score"] += content_score
-            if grand_parent_node is not None:
-                candidates[grand_parent_node]["content_score"] += content_score / 2.0
+            # 为每个父节点计算分数
+            for i, parent in enumerate(parent_nodes):
+                if parent not in candidates:
+                    candidates[parent] = self.score_node(parent)
+                    ordered.append(parent)
 
-        # Scale the final candidates score based on link density. Good content
-        # should have a relatively small link density (5% or less) and be
-        # mostly unaffected by this operation.
+                # 根据层级深度调整分数权重
+                weight = 1.0 / (i + 1)  # 层级越深，权重越小
+                candidates[parent]["content_score"] += content_score * weight
+
+        # 根据链接密度调整最终分数
         for elem in ordered:
             candidate = candidates[elem]
             ld = self.get_link_density(elem)
