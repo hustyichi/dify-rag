@@ -1,25 +1,17 @@
 #!/usr/bin/env python
 from __future__ import print_function
+
 import logging
 import re
 import sys
 
-from lxml.etree import tounicode
-from lxml.etree import _ElementTree
-from lxml.html import document_fromstring
-from lxml.html import fragment_fromstring
-from lxml.html import HtmlElement
+from lxml.etree import _ElementTree, tounicode
+from lxml.html import HtmlElement, document_fromstring, fragment_fromstring
 
-from .cleaners import clean_attributes
-from .cleaners import html_cleaner
-from .htmls import build_doc
-from .htmls import get_body
-from .htmls import get_title
-from .htmls import get_author
-from .htmls import shorten_title
-from .compat import str_, bytes_, tostring_, pattern_type
+from .cleaners import clean_attributes, html_cleaner
+from .compat import bytes_, pattern_type, str_, tostring_
 from .debug import describe, text_content
-
+from .htmls import build_doc, get_author, get_body, get_title, shorten_title
 
 log = logging.getLogger("readability.readability")
 
@@ -85,9 +77,9 @@ def compile_pattern(elements):
     elif isinstance(elements, (str_, bytes_)):
         if isinstance(elements, bytes_):
             elements = str_(elements, "utf-8")
-        elements = elements.split(u",")
+        elements = elements.split(",")
     if isinstance(elements, (list, tuple)):
-        return re.compile(u"|".join([re.escape(x.strip()) for x in elements]), re.U)
+        return re.compile("|".join([re.escape(x.strip()) for x in elements]), re.U)
     else:
         raise Exception("Unknown type for the pattern: {}".format(type(elements)))
         # assume string or string like object
@@ -159,7 +151,7 @@ class Document:
     def _parse(self, input):
         if isinstance(input, (_ElementTree, HtmlElement)):
             doc = input
-            self.encoding = 'utf-8'
+            self.encoding = "utf-8"
         else:
             doc, self.encoding = build_doc(input)
         doc = html_cleaner.clean_html(doc)
@@ -242,10 +234,7 @@ class Document:
                         log.info("ruthless removal did not work. ")
                         ruthless = False
                         log.debug(
-                            (
-                                "ended up stripping too much - "
-                                "going for a safer _parse"
-                            )
+                            ("ended up stripping too much - going for a safer _parse")
                         )
                         # try again
                         continue
@@ -288,17 +277,19 @@ class Document:
             output = fragment_fromstring("<div/>")
         else:
             output = document_fromstring("<div/>")
-        
+
         best_elem_ = best_candidate["elem"]
         best_elem_parent = best_elem_.getparent()
-        best_elem_grandparent = best_elem_parent.getparent() if best_elem_parent is not None else None
+        best_elem_grandparent = (
+            best_elem_parent.getparent() if best_elem_parent is not None else None
+        )
         if best_elem_grandparent in candidates:
             best_elem = best_elem_grandparent
         elif best_elem_parent in candidates:
             best_elem = best_elem_parent
         else:
             best_elem = best_elem_
-        
+
         sibling_score_threshold = candidates[best_elem]["content_score"] * 0.2
         parent = best_elem.getparent()
         siblings = parent.getchildren() if parent is not None else [best_elem]
@@ -389,7 +380,7 @@ class Document:
                 candidates[grand_parent_node] = self.score_node(grand_parent_node)
                 ordered.append(grand_parent_node)
 
-            content_score = len(re.compile(r'[,.，。；;：:！!？?、]').split(inner_text))
+            content_score = len(re.compile(r"[,.，。；;：:！!？?、]").split(inner_text))
             content_score += min((inner_text_len / 100), 3)
             # if elem not in candidates:
             #    candidates[elem] = self.score_node(elem)
@@ -552,7 +543,11 @@ class Document:
             if weight + content_score < 0:
                 log.debug(
                     "Removed %s with score %6.3f and weight %-3s"
-                    % (describe(el), content_score, weight,)
+                    % (
+                        describe(el),
+                        content_score,
+                        weight,
+                    )
                 )
                 el.drop_tree()
             elif el.text_content().count(",") < 10:
@@ -737,7 +732,9 @@ def main():
     if options.url:
         headers = {"User-Agent": "Mozilla/5.0"}
         if sys.version_info[0] == 3:
-            import urllib.request, urllib.parse, urllib.error
+            import urllib.error
+            import urllib.parse
+            import urllib.request
 
             request = urllib.request.Request(options.url, None, headers)
             file = urllib.request.urlopen(request)
