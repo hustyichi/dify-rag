@@ -79,7 +79,7 @@ class PdfExtractor(BaseExtractor):
             documents = self._split_content(lines_toc, lines)
         else:
             content = fix_error_pdf_content("".join(lines))
-            documents = [Document(page_content=content)]
+            documents = [Document(page_content=content, metadata={"titles":[]})]
 
         doc.close()
         return documents
