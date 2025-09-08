@@ -26,43 +26,27 @@ class TitleStructurePost(RetrievalPostBase):
         Returns:
             list[Document]: _description_
         """
-        query_docs_title_set = set()
-        query_metadata_map = {}
         title_map = {}
         final_documents_list = []
         docs = adjunct.get(document_id)
         if not docs:
             logger.error(f"Document:{document_id} miss adjunct segment")
             return query_document
+
+        content_temp = [] 
+        for doc in docs:
+            content = doc.page_content
+            if CUSTOM_SEP in content:
+                title, content = content.split(CUSTOM_SEP)
+            title_map[title] = title_map.get(title, [])
+            title_map[title].append(content)
+        
         for doc in query_document:
             title = content = doc.page_content
             if CUSTOM_SEP in doc.page_content:
                 title, content = doc.page_content.split(CUSTOM_SEP)
-            query_docs_title_set.add(title)
-            key = f"{document_id}{CUSTOM_SEP}{title}"
-            if key not in query_metadata_map:
-                query_metadata_map[key] = {"metadata": {}, "content": ""}
-            query_metadata_map[key]["metadata"] = doc.metadata
-            query_metadata_map[key]["content"] = content
-            query_metadata_map[key]["provider"] = doc.provider
-
-        for doc in docs:
-            title = content = doc.page_content
-            if CUSTOM_SEP in doc.page_content:
-                title, content = doc.page_content.split(CUSTOM_SEP)
-            key = f"{document_id}{CUSTOM_SEP}{title}"
-            if title in query_docs_title_set:
-                title_map[key] = title_map.get(key, [])
-                title_map[key].append(content)
-
-        for key, contents in title_map.items():
-            data = key.split(CUSTOM_SEP)
-            title = data[-1]
-            if title == contents[0]:
-                title = ""
-
-            content = query_metadata_map[key]["content"]
             new_content = content
+            contents = title_map.get(title, [])
             if len(contents) >= 2:
                 # 需要考虑策略自带的字符补充逻辑
                 content_index = contents.index(content)
@@ -78,16 +62,12 @@ class TitleStructurePost(RetrievalPostBase):
                     if left - 1 >= start:
                         left -= 1
                         new_content = self.splice_contents(contents[left], new_content)
-
-            final_content = new_content
-            if title:
-                final_content = title + "\n" + new_content
-
-            doc = Document(
-                page_content=final_content,
-                metadata=query_metadata_map[key]["metadata"],
-                provider=query_metadata_map[key]["provider"],
-            )
-            final_documents_list.append(doc)
-
+            if new_content not in content_temp:
+                content_temp.append(new_content)
+                doc = Document(
+                    page_content=new_content,
+                    metadata=doc.metadata,
+                    provider=doc.provider,
+                )
+                final_documents_list.append(doc) 
         return final_documents_list
