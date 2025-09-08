@@ -35,10 +35,11 @@ class TitleStructurePost(RetrievalPostBase):
 
         content_temp = [] 
         for doc in docs:
-            if CUSTOM_SEP in doc.page_content:
-                title, _ = doc.page_content.split(CUSTOM_SEP)
+            content = doc.page_content
+            if CUSTOM_SEP in content:
+                title, content = content.split(CUSTOM_SEP)
             title_map[title] = title_map.get(title, [])
-            title_map[title].append(doc.page_content)
+            title_map[title].append(content)
         
         for doc in query_document:
             title = content = doc.page_content
@@ -63,11 +64,10 @@ class TitleStructurePost(RetrievalPostBase):
                         new_content = self.splice_contents(contents[left], new_content)
             if new_content not in content_temp:
                 content_temp.append(new_content)
-
-            doc = Document(
-                page_content=new_content,
-                metadata=doc.metadata,
-                provider=doc.provider,
-            )
-            final_documents_list.append(doc) 
+                doc = Document(
+                    page_content=new_content,
+                    metadata=doc.metadata,
+                    provider=doc.provider,
+                )
+                final_documents_list.append(doc) 
         return final_documents_list
