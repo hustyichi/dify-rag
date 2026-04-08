@@ -1,38 +1,46 @@
 # Dify-RAG
 
-高效模块化的 RAG 包，可以快速替换 Dify 中原有的默认模块，大幅提升 Dify 的 RAG 效果。作为通用的基础包，也可以用于其他开源 RAG 服务。
+**[中文文档](README.zh-CN.md)**
 
-# 安装
+A highly efficient and modular RAG package that can quickly replace the default modules in Dify, significantly improving Dify's RAG performance. It can also serve as a general-purpose foundation package for other open-source RAG services.
+
+# Installation
 
 ```bash
 pip install dify-rag
 ```
 
-为了在 Dify 项目中使用，可以在 `api/pyproject.toml` 中添加 `dify-rag` 依赖，之后更新对应的 lock 文件，在不同版本的 Dify 中存在一些差异：
+To use it in a Dify project, add the `dify-rag` dependency in `api/pyproject.toml`, then update the corresponding lock file. There are some differences depending on the Dify version:
 
-- poetry 1.x 版本，需要调用 `poetry lock --no-update` 更新 lock 文件依赖
-- poetry 2.x 版本，需要调用 `poetry lock` 更新 lock 文件依赖
-- uv 版本，需要调用 `uv lock` 更新 lock 文件依赖
+- For poetry 1.x, run `poetry lock --no-update` to update the lock file
+- For poetry 2.x, run `poetry lock` to update the lock file
+- For uv, run `uv lock` to update the lock file
 
-# 使用
+# Usage
 
-目前实现的模块是直接可以插拔放入 Dify 项目中的，只需要在 Dify 项目中替换掉相关模块即可。下面以 html 解析为例：
+The currently implemented modules are plug-and-play and can be directly integrated into the Dify project by replacing the relevant modules. Below is an example using the HTML parser:
 
-在 `api/core/rag/extractor/extract_processor.py` 中将原先使用 Dify 内置的 HtmlExtractor 切换为 Dify-RAG 中的 HtmlExtractor 即可。
+In `api/core/rag/extractor/extract_processor.py`, replace the built-in `HtmlExtractor` with the one from Dify-RAG.
 
-具体需要将原有的 `from core.rag.extractor.html_extractor import HtmlExtractor` 替换为 `from dify_rag.extractor.html_extractor import HtmlExtractor` 即可
+Replace the original import:
+```python
+from core.rag.extractor.html_extractor import HtmlExtractor
+```
+with:
+```python
+from dify_rag.extractor.html_extractor import HtmlExtractor
+```
 
-其他模块的替换也是类似的，可以根据自己的需要自行替换增强。
+Other modules can be replaced in the same way, depending on your needs.
 
+# Supported Document Formats
 
-# 支持的文档格式
-
-| 格式 | 结构化解析 | 表格解析 |
+| Format | Structured Parsing | Table Parsing |
 | --- | --- | --- |
-| html | 支持 | 支持独立拆分，支持转换 markdown 格式，支持按行切分 |
-| md | 支持 | 支持独立拆分，支持 markdown 格式，支持按行切分 |
-| docx | 支持 | 支持独立拆分，支持转换 markdown 格式，支持按行切分 |
-| pdf | 部分支持，需本身有目录信息 | 不支持 |
-| epub | 支持 | 支持独立拆分，支持转换 markdown 格式，支持按行切分 |
-| xlsx | 支持 | 支持独立拆分，支持转换 markdown 格式，支持按行切分 |
-| csv | 支持 | 支持独立拆分，支持转换 markdown 格式，支持按行切分 |
+| html | Supported | Independent splitting, markdown conversion, row-based splitting |
+| md | Supported | Independent splitting, markdown format, row-based splitting |
+| docx | Supported | Independent splitting, markdown conversion, row-based splitting |
+| pdf | Partial (requires built-in TOC) | Not supported |
+| epub | Supported | Independent splitting, markdown conversion, row-based splitting |
+| xlsx | Supported | Independent splitting, markdown conversion, row-based splitting |
+| csv | Supported | Independent splitting, markdown conversion, row-based splitting |
