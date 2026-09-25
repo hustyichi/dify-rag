@@ -1,0 +1,6 @@
+Dify-RAG
+Copyright 2024-2026 Dify-RAG contributors
+
+The code in dify_rag/extractor/html/readability/ is derived from
+python-readability (https://github.com/buriy/python-readability),
+licensed under the Apache License, Version 2.0.

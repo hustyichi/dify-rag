@@ -3,6 +3,7 @@ name = "dify-rag"
 version = "0.2.2"
 description = "dify's rag patch module"
 authors = ["yichi <hustyichi@163.com>"]
+license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/hustyichi/dify-rag"
 
